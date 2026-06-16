@@ -1,19 +1,8 @@
-# 忽略報銷單據敏感隱私檔案 (PDF, 圖片)
-**/*.pdf
-**/*.jpg
-**/*.jpeg
-**/*.png
-
-# 忽略生成的 HTML 儀表板與 JSON 數據（包含真實單據數據）
-**/*.html
-**/*.json
-*.txt
-
-# 忽略備份圖片目錄與 Python 編譯檔
-**/.backup_images/
+# 僅忽略 Python 快取與 IDE 設定
 **/__pycache__/
 **/*.pyc
-
-# 忽略 IDE 配置資料夾
 .vscode/
 .idea/
+
+# 忽略備份的原始圖片（已被轉換為 PDF 格式）
+**/.backup_images/

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三月份報銷單據管理器 v2.0</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #22c55e;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 2rem;
+            margin: 0;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #818cf8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-dim);
+            font-weight: 500;
+            padding: 0.75rem;
+            font-size: 0.825rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .editable {
+            transition: all 0.2s;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            cursor: text;
+        }
+
+        .editable:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .editable:focus {
+            outline: 2px solid var(--primary);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 長按提示樣式 */
+        .copy-target {
+            cursor: pointer;
+            user-select: none;
+        }
+        .copy-target:active {
+            opacity: 0.7;
+        }
+
+        .amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #4ade80;
+        }
+
+        .btn-main {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-main:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .date-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.4rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-weight: 600;
+        }
+
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body x-data="reimbursementApp()" @mouseup="clearTimer()" @touchend="clearTimer()">
+    <div class="container">
+        <div class="header">
+            <h1>Voucher Manager <span style="font-size: 1rem; color: var(--text-dim); font-weight: normal;">March 2026</span></h1>
+            <button class="btn-main" @click="exportData()">💾 導出數據 (JSON)</button>
+        </div>
+
+        <!-- 說明提示 -->
+        <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-dim);">
+            💡 提示：點擊內容即可 **修改**；長按日期/描述/金額 0.5 秒即可 **複製**。所有更改將自動保存到瀏覽器。
+        </div>
+
+        <!-- 公關費 Section -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">🏢 公關費 (Public Relations)</div>
+                <div>
+                    <button class="btn-icon" @click="sortData('pr')">📅 排序切換</button>
+                    <span class="date-badge" x-text="`共 ${prItems.length} 筆`"></span>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="15%">日期 (長按複製)</th>
+                        <th width="20%">描述 (長按複製)</th>
+                        <th width="20%">客戶 (長按複製)</th>
+                        <th width="15%">金額 (長按複製)</th>
+                        <th width="30%">文件操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(item, index) in prItems" :key="index">
+                        <tr>
+                            <td>
+                                <span class="date-badge copy-target" 
+                                      x-text="item.date"
+                                      @mousedown="startTimer(item.date)" 
+                                      @touchstart="startTimer(item.date)"></span>
+                            </td>
+                            <td>
+                                <div contenteditable="true" 
+                                     class="editable copy-target" 
+                                     x-text="item.desc" 
+                                     @blur="updateItem('pr', index, 'desc', $event.target.innerText)"
+                                     @mousedown="startTimer(item.desc)" 
+                                     @touchstart="startTimer(item.desc)"></div>
+                            </td>
+                            <td>
+                                <div contenteditable="true" 
+                                     class="editable copy-target" 
+                                     x-text="item.customer || '-'" 
+                                     @blur="updateItem('pr', index, 'customer', $event.target.innerText)"
+                                     @mousedown="startTimer(item.customer)" 
+                                     @touchstart="startTimer(item.customer)"
+                                     style="color: var(--text-dim);"></div>
+                            </td>
+                            <td>
+                                <div class="amount">
+                                    <span contenteditable="true" 
+                                          class="editable copy-target" 
+                                          x-text="item.amount" 
+                                          @blur="updateItem('pr', index, 'amount', $event.target.innerText)"
+                                          @mousedown="startTimer(item.amount)" 
+                                          @touchstart="startTimer(item.amount)"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
+                                <a :href="'file:///' + item.path.replace(/\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 交通費 Section -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">🚖 交通費 (Transportation)</div>
+                <div>
+                    <button class="btn-icon" @click="sortData('trans')">📅 排序切換</button>
+                    <span class="date-badge" x-text="`共 ${transItems.length} 筆`"></span>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="15%">日期</th>
+                        <th width="20%">路線描述</th>
+                        <th width="20%">客戶 (長按複製)</th>
+                        <th width="15%">金額</th>
+                        <th width="30%">文件操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(item, index) in transItems" :key="index">
+                        <tr>
+                            <td>
+                                <span class="date-badge copy-target" 
+                                      x-text="item.date"
+                                      @mousedown="startTimer(item.date)" 
+                                      @touchstart="startTimer(item.date)"></span>
+                            </td>
+                            <td>
+                                <div contenteditable="true" 
+                                     class="editable copy-target" 
+                                     x-text="item.desc" 
+                                     @blur="updateItem('trans', index, 'desc', $event.target.innerText)"
+                                     @mousedown="startTimer(item.desc)" 
+                                     @touchstart="startTimer(item.desc)"></div>
+                            </td>
+                            <td>
+                                <div contenteditable="true" 
+                                     class="editable copy-target" 
+                                     x-text="item.customer || '-'" 
+                                     @blur="updateItem('trans', index, 'customer', $event.target.innerText)"
+                                     @mousedown="startTimer(item.customer)" 
+                                     @touchstart="startTimer(item.customer)"
+                                     style="color: var(--text-dim);"></div>
+                            </td>
+                            <td>
+                                <div class="amount">
+                                    <span contenteditable="true" 
+                                          class="editable copy-target" 
+                                          x-text="item.amount" 
+                                          @blur="updateItem('trans', index, 'amount', $event.target.innerText)"
+                                          @mousedown="startTimer(item.amount)" 
+                                          @touchstart="startTimer(item.amount)"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
+                                <a :href="'file:///' + item.path.replace(/\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div x-show="showToast" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-4"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-300"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-4"
+         class="copy-toast" 
+         x-text="toastMsg"
+         x-cloak></div>
+
+    <script>
+        function reimbursementApp() {
+            const STORAGE_KEY = 'vouchers_data_v2';
+            
+            // 初始數據來源（若 LocalStorage 無數據則使用此預設值）
+            const defaultData = {
+                prItems: [
+                    { date: '2026-04-01', desc: 'Gurgaon', amount: '420', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\01-Apr-26-Gurgaon-420.pdf' },
+                    { date: '2026-03-04', desc: 'Gurgaon', amount: '12116', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\04-Mar-26-Gurgaon-12116.pdf' },
+                    { date: '2026-03-08', desc: 'Gurgaon', amount: '3704', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\08-Mar-26-Gurgaon-3704.pdf' },
+                    { date: '2026-03-09', desc: 'Delhi', amount: '514', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\09-Mar-26-Delhi-514.pdf' },
+                    { date: '2026-03-09', desc: 'Delhi (-1)', amount: '519', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\09-Mar-26-Delhi-519-1.pdf' },
+                    { date: '2026-03-09', desc: 'Delhi (-2)', amount: '519', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\09-Mar-26-Delhi-519-2.pdf' },
+                    { date: '2026-03-13', desc: 'Gurgaon', amount: '3298', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\13-Mar-26-Gurgaon-3298.pdf' },
+                    { date: '2026-03-14', desc: 'Gurgaon', amount: '12590', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\14-Mar-26-Gurgaon-12590.pdf' },
+                    { date: '2026-03-14', desc: 'Gurgaon', amount: '719', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\14-Mar-26-Gurgaon-719.pdf' },
+                    { date: '2026-03-14', desc: 'Gurgaon', amount: '956', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\14-Mar-26-Gurgaon-956.pdf' },
+                    { date: '2026-03-23', desc: 'Delhi', amount: '1982', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\23-Mar-26-Delhi-1982.pdf' },
+                    { date: '2026-02-24', desc: 'Gurgaon', amount: '2410', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\24-Feb-26-Gurgaon-2410.jpg' },
+                    { date: '2026-02-24', desc: 'Gurgaon', amount: '987', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\24-Feb-26-Gurgaon-987.jpg' },
+                    { date: '2026-03-24', desc: 'Delhi', amount: '730', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\24-Mar-26-Delhi-730.pdf' },
+                    { date: '2026-03-24', desc: 'Delhi', amount: '750', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\24-Mar-26-Delhi-750.pdf' },
+                    { date: '2026-03-26', desc: 'Gurgaon', amount: '1355', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\26-Mar-26-Gurgaon-1355.pdf' },
+                    { date: '2026-03-30', desc: 'Gurgaon', amount: '1420', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\30-Mar-26-Gurgaon-1420.pdf' },
+                    { date: '2026-03-31', desc: 'Delhi', amount: '1718', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Public Relations\\31-Mar-26-Delhi-1718.pdf' }
+                ],
+                transItems: [
+                    { date: '2026-03-04', desc: 'Gurgaon to Gurgaon', amount: '307', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\04-Mar-26-Gurgaon to Gurgaon-307.pdf' },
+                    { date: '2026-03-04', desc: 'Gurgaon to Gurgaon', amount: '587', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\04-Mar-26-Gurgaon to Gurgaon-587.pdf' },
+                    { date: '2026-03-09', desc: 'Delhi to Gurgaon', amount: '722', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\09-Mar-26-Delhi to Gurgaon-722.pdf' },
+                    { date: '2026-03-09', desc: 'Gurgaon to Delhi', amount: '556', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\09-Mar-26-Gurgaon to Delhi-556.pdf' },
+                    { date: '2026-03-13', desc: 'Gurgaon to Gurgaon', amount: '384', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\13-Mar-26-Gurgaon to Gurgaon-384.pdf' },
+                    { date: '2026-03-13', desc: 'Gurgaon to Gurgaon', amount: '495', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\13-Mar-26-Gurgaon to Gurgaon-495.pdf' },
+                    { date: '2026-03-16', desc: 'Delhi to Gurgaon', amount: '406', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\16-Mar-26-Delhi to Gurgaon-406.pdf' },
+                    { date: '2026-03-16', desc: 'Delhi to Gurgaon', amount: '522', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\16-Mar-26-Delhi to Gurgaon-522.pdf' },
+                    { date: '2026-03-19', desc: 'Delhi to Gurgaon', amount: '348', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\19-Mar-26-Delhi to Gurgaon-348.pdf' },
+                    { date: '2026-02-20', desc: 'Delhi to Gurgaon', amount: '934', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\20-Feb-26-Delhi to Gurgaon-934.pdf' },
+                    { date: '2026-03-23', desc: 'Delhi to Delhi', amount: '162', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\23-Mar-26-Delhi to Delhi-162.pdf' },
+                    { date: '2026-03-23', desc: 'Delhi to Gurgaon', amount: '717', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\23-Mar-26-Delhi to Gurgaon-717.pdf' },
+                    { date: '2026-03-23', desc: 'Gurgaon to Delhi', amount: '482', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\23-Mar-26-Gurgaon to Delhi-482.pdf' },
+                    { date: '2026-03-24', desc: 'Delhi to Gurgaon', amount: '473', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\24-Mar-26-Delhi to Gurgaon-473.pdf' },
+                    { date: '2026-03-24', desc: 'Delhi to Gurgaon', amount: '516', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\24-Mar-26-Delhi to Gurgaon-516.pdf' },
+                    { date: '2026-03-30', desc: 'Gurgaon to Gurgaon', amount: '470', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\30-Mar-26-Gurgaon to Gurgaon-470.pdf' },
+                    { date: '2026-03-30', desc: 'Gurgaon to Noida', amount: '986', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\30-Mar-26-Gurgaon to Noida-986.pdf' },
+                    { date: '2026-03-31', desc: 'Delhi to Gurgaon', amount: '396', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\31-Mar-26-Delhi to Gurgaon-396.pdf' },
+                    { date: '2026-03-31', desc: 'Noida to Delhi', amount: '429', customer: '', path: 'E:\\Projects\\Voucher management\\Mar\\Transportation\\31-Mar-26-Noida to Delhi-429.pdf' }
+                ]
+            };
+
+            // 從 Storage 讀取數據
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const initialData = saved ? JSON.parse(saved) : defaultData;
+
+            return {
+                prItems: initialData.prItems,
+                transItems: initialData.transItems,
+                prSortAsc: false,
+                transSortAsc: false,
+                showToast: false,
+                toastMsg: '',
+                pressTimer: null,
+
+                updateItem(type, index, field, value) {
+                    const list = type === 'pr' ? this.prItems : this.transItems;
+                    list[index][field] = value;
+                    this.saveToLocal();
+                },
+
+                saveToLocal() {
+                    const data = {
+                        prItems: this.prItems,
+                        transItems: this.transItems
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                },
+
+                exportData() {
+                    const data = JSON.stringify({
+                        prItems: this.prItems,
+                        transItems: this.transItems
+                    }, null, 4);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Vouchers_Export_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    this.notify('數據已導出為 JSON');
+                },
+
+                startTimer(text) {
+                    this.clearTimer();
+                    this.pressTimer = setTimeout(() => {
+                        this.copyText(text);
+                    }, 500); // 0.5 秒長按
+                },
+
+                clearTimer() {
+                    if (this.pressTimer) clearTimeout(this.pressTimer);
+                },
+
+                copyText(text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        this.notify(`已複製: ${text}`);
+                    });
+                },
+
+                notify(msg) {
+                    this.toastMsg = msg;
+                    this.showToast = true;
+                    setTimeout(() => this.showToast = false, 2000);
+                },
+
+                sortData(type) {
+                    if (type === 'pr') {
+                        this.prSortAsc = !this.prSortAsc;
+                        this.prItems.sort((a, b) => this.prSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+                    } else {
+                        this.transSortAsc = !this.transSortAsc;
+                        this.transItems.sort((a, b) => this.transSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+                    }
+                    this.saveToLocal();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四月份報銷單據管理器 v2.0</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #22c55e;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        h1 {
+            font-weight: 700; font-size: 2rem; margin: 0;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .section-card {
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 1rem;
+            padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;
+        }
+        .section-title { font-size: 1.25rem; font-weight: 600; color: #818cf8; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { color: var(--text-dim); font-weight: 500; padding: 0.75rem; font-size: 0.825rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        td { padding: 1rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        .editable { transition: all 0.2s; padding: 0.2rem 0.4rem; border-radius: 0.25rem; cursor: text; }
+        .editable:hover { background: rgba(255, 255, 255, 0.05); }
+        .editable:focus { outline: 2px solid var(--primary); background: rgba(255, 255, 255, 0.1); }
+        .copy-target { cursor: pointer; user-select: none; }
+        .copy-target:active { opacity: 0.7; }
+        .amount { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #4ade80; }
+        .btn-main {
+            background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 0.6rem; font-weight: 600; cursor: pointer; transition: transform 0.2s;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .btn-main:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-dim);
+            padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.8rem; margin-right: 0.5rem;
+        }
+        .btn-icon:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+        .date-badge { background: rgba(255, 255, 255, 0.05); padding: 0.2rem 0.5rem; border-radius: 0.4rem; font-size: 0.85rem; color: var(--text-dim); }
+        .copy-toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            background: var(--success); color: white; padding: 0.75rem 1.5rem; border-radius: 2rem;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3); z-index: 1000; font-weight: 600;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body x-data="reimbursementApp()" @mouseup="clearTimer()" @touchend="clearTimer()">
+    <div class="container">
+        <div class="header">
+            <h1>Voucher Manager <span style="font-size: 1rem; color: var(--text-dim); font-weight: normal;">April 2026</span></h1>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-main" @click="exportData()">💾 導出數據 (JSON)</button>
+                <button class="btn-main" style="background: #10b981;" @click="$refs.fileInput.click()">📂 導入數據 (JSON)</button>
+                <input type="file" x-ref="fileInput" @change="importData" accept=".json" style="display: none;">
+            </div>
+        </div>
+        <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-dim);">
+            💡 提示：點擊內容即可 **修改**；長按日期/描述/金額 0.5 秒即可 **複製**。所有更改將自動保存到瀏覽器。
+        </div>
+
+        <!-- 公關費 Section -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">🏢 公關費 (Public Relations)</div>
+                <div>
+                    <button class="btn-icon" @click="sortData('pr')">📅 排序切換</button>
+                    <span class="date-badge" x-text="`共 ${prItems.length} 筆`"></span>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="15%">日期 (長按複製)</th>
+                        <th width="20%">描述 (長按複製)</th>
+                        <th width="20%">客戶 (長按複製)</th>
+                        <th width="15%">金額 (長按複製)</th>
+                        <th width="30%">文件操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(item, index) in prItems" :key="index">
+                        <tr>
+                            <td>
+                                <span class="date-badge copy-target" x-text="item.date" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></span>
+                            </td>
+                            <td>
+                                <div contenteditable="true" class="editable copy-target" x-text="item.desc" @blur="updateItem('pr', index, 'desc', $event.target.innerText)" @mousedown="startTimer(item.desc)" @touchstart="startTimer(item.desc)"></div>
+                            </td>
+                            <td>
+                                <div contenteditable="true" class="editable copy-target" x-text="item.customer || '-'" @blur="updateItem('pr', index, 'customer', $event.target.innerText)" @mousedown="startTimer(item.customer)" @touchstart="startTimer(item.customer)" style="color: var(--text-dim);"></div>
+                            </td>
+                            <td>
+                                <div class="amount"><span contenteditable="true" class="editable copy-target" x-text="item.amount" @blur="updateItem('pr', index, 'amount', $event.target.innerText)" @mousedown="startTimer(item.amount)" @touchstart="startTimer(item.amount)"></span></div>
+                            </td>
+                            <td>
+                                <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
+                                <a :href="'file:///' + item.path.replace(/\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 交通費 Section -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">🚖 交通費 (Transportation)</div>
+                <div>
+                    <button class="btn-icon" @click="sortData('trans')">📅 排序切換</button>
+                    <span class="date-badge" x-text="`共 ${transItems.length} 筆`"></span>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="15%">日期</th>
+                        <th width="20%">路線描述</th>
+                        <th width="20%">客戶 (長按複製)</th>
+                        <th width="15%">金額</th>
+                        <th width="30%">文件操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(item, index) in transItems" :key="index">
+                        <tr>
+                            <td>
+                                <span class="date-badge copy-target" x-text="item.date" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></span>
+                            </td>
+                            <td>
+                                <div contenteditable="true" class="editable copy-target" x-text="item.desc" @blur="updateItem('trans', index, 'desc', $event.target.innerText)" @mousedown="startTimer(item.desc)" @touchstart="startTimer(item.desc)"></div>
+                            </td>
+                            <td>
+                                <div contenteditable="true" class="editable copy-target" x-text="item.customer || '-'" @blur="updateItem('trans', index, 'customer', $event.target.innerText)" @mousedown="startTimer(item.customer)" @touchstart="startTimer(item.customer)" style="color: var(--text-dim);"></div>
+                            </td>
+                            <td>
+                                <div class="amount"><span contenteditable="true" class="editable copy-target" x-text="item.amount" @blur="updateItem('trans', index, 'amount', $event.target.innerText)" @mousedown="startTimer(item.amount)" @touchstart="startTimer(item.amount)"></span></div>
+                            </td>
+                            <td>
+                                <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
+                                <a :href="'file:///' + item.path.replace(/\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div x-show="showToast" x-transition class="copy-toast" x-text="toastMsg" x-cloak></div>
+
+    <script>
+        function reimbursementApp() {
+            const STORAGE_KEY = 'vouchers_data_apr_2026';
+            
+            const defaultData = {
+                prItems: [{"date": "2026-04-01", "desc": "Gurgaon", "amount": "420", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\01-Apr-26-Gurgaon-420.pdf"}, {"date": "2026-04-06", "desc": "Delhi", "amount": "756", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\06-Apr-26-Delhi-756.pdf"}, {"date": "2026-04-06", "desc": "Gurgaon", "amount": "9461", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\06-Apr-26-Gurgaon-9461.pdf"}, {"date": "2026-04-07", "desc": "Hyderabad", "amount": "2895", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\07-Apr-26-Hyderabad-2895.pdf"}, {"date": "2026-04-08", "desc": "Bengaluru", "amount": "1690", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\08-Apr-26-Bengaluru-1690.pdf"}, {"date": "2026-04-10", "desc": "Noida", "amount": "730", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\10-Apr-26-Noida-730.pdf"}, {"date": "2026-04-16", "desc": "Gurgaon", "amount": "1181", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\16-Apr-26-Gurgaon-1181.pdf"}, {"date": "2026-04-18", "desc": "Manesar", "amount": "6768", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\18-Apr-26-Manesar-6768.pdf"}, {"date": "2026-04-26", "desc": "Gurgaon", "amount": "2830", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\26-Apr-26-Gurgaon-2830.pdf"}, {"date": "2026-04-26", "desc": "Gurgaon", "amount": "7965", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\26-Apr-26-Gurgaon-7965.pdf"}],
+                transItems: [{"date": "2026-04-01", "desc": "Gurgaon to Gurgaon", "amount": "65", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\01-Apr-26-Gurgaon to Gurgaon-65.pdf"}, {"date": "2026-04-02", "desc": "Gurgaon to Gurgaon", "amount": "191", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\02-Apr-26-Gurgaon to Gurgaon-191.pdf"}, {"date": "2026-04-02", "desc": "Gurgaon to Gurgaon", "amount": "195", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\02-Apr-26-Gurgaon to Gurgaon-195.pdf"}, {"date": "2026-04-05", "desc": "Delhi to Gurgaon", "amount": "307", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\05-Apr-26-Delhi to Gurgaon-307.pdf"}, {"date": "2026-04-06", "desc": "Delhi to Gurgaon", "amount": "448", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Delhi to Gurgaon-448.pdf"}, {"date": "2026-04-06", "desc": "Gurgaon to Delhi", "amount": "824", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Delhi-824.pdf"}, {"date": "2026-04-06", "desc": "Gurgaon to Gurgaon", "amount": "147", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-147.pdf"}, {"date": "2026-04-06", "desc": "Gurgaon to Gurgaon", "amount": "165", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-165.pdf"}, {"date": "2026-04-06", "desc": "Gurgaon to Gurgaon", "amount": "282", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-282.pdf"}, {"date": "2026-04-06", "desc": "Gurgaon to Gurgaon", "amount": "829", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-829.pdf"}, {"date": "2026-04-07", "desc": "Gurgaon to Gurgaon", "amount": "280", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\07-Apr-26-Gurgaon to Gurgaon-280.pdf"}, {"date": "2026-04-07", "desc": "Gurgaon to Gurgaon", "amount": "496", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\07-Apr-26-Gurgaon to Gurgaon-496.pdf"}, {"date": "2026-04-08", "desc": "Bengaluru to Bengaluru", "amount": "1647", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-1647.pdf"}, {"date": "2026-04-08", "desc": "Bengaluru to Bengaluru", "amount": "218", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-218.pdf"}, {"date": "2026-04-08", "desc": "Bengaluru to Bengaluru", "amount": "596", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-596.pdf"}, {"date": "2026-04-08", "desc": "Bengaluru to Bengaluru", "amount": "715", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-715.pdf"}, {"date": "2026-04-09", "desc": "Bengaluru to Bengaluru", "amount": "2253", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Bengaluru to Bengaluru-2253.pdf"}, {"date": "2026-04-09", "desc": "Bengaluru to Bengaluru", "amount": "640", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Bengaluru to Bengaluru-640.pdf"}, {"date": "2026-04-09", "desc": "Bengaluru to Bengaluru", "amount": "789", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Bengaluru to Bengaluru-789.pdf"}, {"date": "2026-04-09", "desc": "Gurgaon to Delhi", "amount": "631", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Gurgaon to Delhi-631.pdf"}, {"date": "2026-04-10", "desc": "Gurgaon to Noida", "amount": "1002", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\10-Apr-26-Gurgaon to Noida-1002.pdf"}, {"date": "2026-04-10", "desc": "Gurgaon to Noida", "amount": "795", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\10-Apr-26-Gurgaon to Noida-795.pdf"}, {"date": "2026-04-16", "desc": "Delhi to Gurgaon", "amount": "1094", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Delhi to Gurgaon-1094.pdf"}, {"date": "2026-04-16", "desc": "Gurgaon to Manesar", "amount": "108", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Gurgaon to Manesar-108.pdf"}, {"date": "2026-04-16", "desc": "Gurgaon to Manesar", "amount": "436", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Gurgaon to Manesar-436.pdf"}, {"date": "2026-04-16", "desc": "Gurgaon to Manesar", "amount": "501", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Gurgaon to Manesar-501.pdf"}, {"date": "2026-04-18", "desc": "Gurgaon to Manesar", "amount": "438", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\18-Apr-26-Gurgaon to Manesar-438.pdf"}, {"date": "2026-04-18", "desc": "Gurgaon to Manesar", "amount": "485", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\18-Apr-26-Gurgaon to Manesar-485.pdf"}, {"date": "2026-04-25", "desc": "Gurgaon to Gurgaon", "amount": "762", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\25-Apr-26-Gurgaon to Gurgaon-762.pdf"}, {"date": "2026-04-26", "desc": "Gurgaon to Delhi", "amount": "343", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\26-Apr-26-Gurgaon to Delhi-343.pdf"}, {"date": "2026-04-26", "desc": "Gurgaon to Gurgaon", "amount": "151", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\26-Apr-26-Gurgaon to Gurgaon-151.pdf"}, {"date": "2026-04-28", "desc": "Gurgaon to Delhi", "amount": "371", "customer": "", "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\28-Apr-26-Gurgaon to Delhi-371.pdf"}]
+            };
+
+            const saved = localStorage.getItem(STORAGE_KEY);
+            let initialData;
+            
+            if (saved) {
+                initialData = JSON.parse(saved);
+                
+                // --- 無損合併邏輯 (Merge without destroying cache) ---
+                const defaultPaths = new Set([
+                    ...defaultData.prItems.map(i => i.path),
+                    ...defaultData.transItems.map(i => i.path)
+                ]);
+
+                // 1. 清理：移除快取中已經不存在於硬碟的檔案 (如被改名或刪除)
+                const originalPrLen = initialData.prItems.length;
+                const originalTransLen = initialData.transItems.length;
+
+                initialData.prItems = initialData.prItems.filter(i => defaultPaths.has(i.path));
+                initialData.transItems = initialData.transItems.filter(i => defaultPaths.has(i.path));
+                
+                let isUpdated = (originalPrLen !== initialData.prItems.length) || (originalTransLen !== initialData.transItems.length);
+
+                // 2. 新增：找出快取中保留下來的路徑
+                const existingPaths = new Set([
+                    ...initialData.prItems.map(i => i.path),
+                    ...initialData.transItems.map(i => i.path)
+                ]);
+                
+                // 檢查硬碟上的新單據，將其加入快取
+                defaultData.prItems.forEach(item => {
+                    if (!existingPaths.has(item.path)) {
+                        initialData.prItems.push(item);
+                        isUpdated = true;
+                    }
+                });
+                
+                defaultData.transItems.forEach(item => {
+                    if (!existingPaths.has(item.path)) {
+                        initialData.transItems.push(item);
+                        isUpdated = true;
+                    }
+                });
+                
+                // 如果有新檔案被合併或舊檔案被刪除，就自動把新的結果覆寫回 localStorage
+                if (isUpdated) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+                    console.log('Detected new voucher files! They have been safely appended to your existing cache.');
+                }
+            } else {
+                initialData = defaultData;
+            }
+
+            return {
+                prItems: initialData.prItems,
+                transItems: initialData.transItems,
+                prSortAsc: false,
+                transSortAsc: false,
+                showToast: false,
+                toastMsg: '',
+                pressTimer: null,
+
+                updateItem(type, index, field, value) {
+                    const list = type === 'pr' ? this.prItems : this.transItems;
+                    list[index][field] = value;
+                    this.saveToLocal();
+                },
+
+                saveToLocal() {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        prItems: this.prItems,
+                        transItems: this.transItems
+                    }));
+                },
+
+                exportData() {
+                    const data = JSON.stringify({
+                        prItems: this.prItems,
+                        transItems: this.transItems
+                    }, null, 4);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Apr_Vouchers_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    this.notify('數據已導出為 JSON');
+                },
+
+                importData(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.prItems && data.transItems) {
+                                this.prItems = data.prItems;
+                                this.transItems = data.transItems;
+                                this.saveToLocal();
+                                this.notify('✅ 數據導入成功！');
+                            } else {
+                                alert('導入失敗：JSON 格式不正確');
+                            }
+                        } catch (err) {
+                            alert('導入失敗：無法解析 JSON');
+                        }
+                        event.target.value = ''; // Reset
+                    };
+                    reader.readAsText(file);
+                },
+
+                startTimer(text) {
+                    this.clearTimer();
+                    this.pressTimer = setTimeout(() => { this.copyText(text); }, 500);
+                },
+
+                clearTimer() { if (this.pressTimer) clearTimeout(this.pressTimer); },
+
+                copyText(text) {
+                    navigator.clipboard.writeText(text).then(() => { this.notify(`已複製: ${text}`); });
+                },
+
+                notify(msg) {
+                    this.toastMsg = msg;
+                    this.showToast = true;
+                    setTimeout(() => this.showToast = false, 2000);
+                },
+
+                sortData(type) {
+                    if (type === 'pr') {
+                        this.prSortAsc = !this.prSortAsc;
+                        this.prItems.sort((a, b) => this.prSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+                    } else {
+                        this.transSortAsc = !this.transSortAsc;
+                        this.transItems.sort((a, b) => this.transSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+                    }
+                    this.saveToLocal();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

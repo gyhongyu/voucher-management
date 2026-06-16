@@ -1,0 +1,300 @@
+{
+    "prItems": [
+        {
+            "date": "2026-04-01",
+            "desc": "Gurgaon",
+            "amount": "420",
+            "customer": "ELCINA  Manik 請顧問喝咖啡",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\01-Apr-26-Gurgaon-420.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Delhi",
+            "amount": "756",
+            "customer": "Foxlink Thomas Lin 長官視查請長官喝咖啡",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\06-Apr-26-Delhi-756.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Gurgaon",
+            "amount": "9461",
+            "customer": "勿報, 個人請吃飯",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\06-Apr-26-Gurgaon-9461.pdf"
+        },
+        {
+            "date": "2026-04-07",
+            "desc": "Hyderabad",
+            "amount": "2895",
+            "customer": "Foxlink Thomas Lin 長官視查請長官吃飯",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\07-Apr-26-Hyderabad-2895.pdf"
+        },
+        {
+            "date": "2026-04-08",
+            "desc": "Bengaluru",
+            "amount": "1690",
+            "customer": "Foxlink Thomas Lin 長官視查請長官吃飯",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\08-Apr-26-Bengaluru-1690.pdf"
+        },
+        {
+            "date": "2026-04-10",
+            "desc": "Noida",
+            "amount": "730",
+            "customer": "ELCINA  Manik 請顧問喝咖啡",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\10-Apr-26-Noida-730.pdf"
+        },
+        {
+            "date": "2026-04-16",
+            "desc": "Gurgaon",
+            "amount": "1181",
+            "customer": "PAVONE \nAbhinav 請顧問喝咖啡",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\16-Apr-26-Gurgaon-1181.pdf"
+        },
+        {
+            "date": "2026-04-18",
+            "desc": "Manesar",
+            "amount": "6768",
+            "customer": "Delta Joe / Raghu / \nFangling 請客戶吃飯",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\18-Apr-26-Manesar-6768.pdf"
+        },
+        {
+            "date": "2026-04-26",
+            "desc": "Gurgaon",
+            "amount": "2830",
+            "customer": "Sensetek Michael / Eric / Jacky 請客戶喝咖啡",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\26-Apr-26-Gurgaon-2830.pdf"
+        },
+        {
+            "date": "2026-04-26",
+            "desc": "Gurgaon",
+            "amount": "7965",
+            "customer": "Sensetek Michael / Eric / Jacky 請客戶吃飯",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Public Relations\\26-Apr-26-Gurgaon-7965.pdf"
+        }
+    ],
+    "transItems": [
+        {
+            "date": "2026-04-01",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "65",
+            "customer": "FRRO 移民局辦證相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\01-Apr-26-Gurgaon to Gurgaon-65.pdf"
+        },
+        {
+            "date": "2026-04-02",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "191",
+            "customer": "FRRO 移民局辦證相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\02-Apr-26-Gurgaon to Gurgaon-191.pdf"
+        },
+        {
+            "date": "2026-04-02",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "195",
+            "customer": "FRRO 移民局辦證相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\02-Apr-26-Gurgaon to Gurgaon-195.pdf"
+        },
+        {
+            "date": "2026-04-05",
+            "desc": "Delhi to Gurgaon",
+            "amount": "307",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\05-Apr-26-Delhi to Gurgaon-307.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Delhi to Gurgaon",
+            "amount": "448",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Delhi to Gurgaon-448.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "147",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-147.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "165",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-165.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "282",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-282.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "829",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Gurgaon-829.pdf"
+        },
+        {
+            "date": "2026-04-06",
+            "desc": "Gurgaon to Delhi",
+            "amount": "824",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\06-Apr-26-Gurgaon to Delhi-824.pdf"
+        },
+        {
+            "date": "2026-04-07",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "280",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\07-Apr-26-Gurgaon to Gurgaon-280.pdf"
+        },
+        {
+            "date": "2026-04-07",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "496",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\07-Apr-26-Gurgaon to Gurgaon-496.pdf"
+        },
+        {
+            "date": "2026-04-08",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "218",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-218.pdf"
+        },
+        {
+            "date": "2026-04-08",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "596",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-596.pdf"
+        },
+        {
+            "date": "2026-04-08",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "715",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-715.pdf"
+        },
+        {
+            "date": "2026-04-08",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "1647",
+            "customer": "Foxlink Thomas長官視查行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\08-Apr-26-Bengaluru to Bengaluru-1647.pdf"
+        },
+        {
+            "date": "2026-04-09",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "2253",
+            "customer": "Delta / Bosch 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Bengaluru to Bengaluru-2253.pdf"
+        },
+        {
+            "date": "2026-04-09",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "640",
+            "customer": "Delta / Bosch 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Bengaluru to Bengaluru-640.pdf"
+        },
+        {
+            "date": "2026-04-09",
+            "desc": "Bengaluru to Bengaluru",
+            "amount": "789",
+            "customer": "Delta / Bosch 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Bengaluru to Bengaluru-789.pdf"
+        },
+        {
+            "date": "2026-04-09",
+            "desc": "Gurgaon to Delhi",
+            "amount": "631",
+            "customer": "Delta / Bosch 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\09-Apr-26-Gurgaon to Delhi-631.pdf"
+        },
+        {
+            "date": "2026-04-10",
+            "desc": "Gurgaon to Noida",
+            "amount": "1002",
+            "customer": "Electronica India 2026 (Noida)",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\10-Apr-26-Gurgaon to Noida-1002.pdf"
+        },
+        {
+            "date": "2026-04-10",
+            "desc": "Gurgaon to Noida",
+            "amount": "795",
+            "customer": "Electronica India 2026 (Noida)",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\10-Apr-26-Gurgaon to Noida-795.pdf"
+        },
+        {
+            "date": "2026-04-16",
+            "desc": "Delhi to Gurgaon",
+            "amount": "1094",
+            "customer": "Delta / Vivaan 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Delhi to Gurgaon-1094.pdf"
+        },
+        {
+            "date": "2026-04-16",
+            "desc": "Gurgaon to Manesar",
+            "amount": "108",
+            "customer": "Delta / Vivaan 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Gurgaon to Manesar-108.pdf"
+        },
+        {
+            "date": "2026-04-16",
+            "desc": "Gurgaon to Manesar",
+            "amount": "436",
+            "customer": "Delta / Vivaan 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Gurgaon to Manesar-436.pdf"
+        },
+        {
+            "date": "2026-04-16",
+            "desc": "Gurgaon to Manesar",
+            "amount": "501",
+            "customer": "Delta / Vivaan 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\16-Apr-26-Gurgaon to Manesar-501.pdf"
+        },
+        {
+            "date": "2026-04-18",
+            "desc": "Gurgaon to Manesar",
+            "amount": "438",
+            "customer": "Delta / Sensetek 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\18-Apr-26-Gurgaon to Manesar-438.pdf"
+        },
+        {
+            "date": "2026-04-18",
+            "desc": "Gurgaon to Manesar",
+            "amount": "485",
+            "customer": "Delta / Sensetek 拜訪相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\18-Apr-26-Gurgaon to Manesar-485.pdf"
+        },
+        {
+            "date": "2026-04-25",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "762",
+            "customer": "Sensetek相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\25-Apr-26-Gurgaon to Gurgaon-762.pdf"
+        },
+        {
+            "date": "2026-04-26",
+            "desc": "Gurgaon to Delhi",
+            "amount": "343",
+            "customer": "Sensetek相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\26-Apr-26-Gurgaon to Delhi-343.pdf"
+        },
+        {
+            "date": "2026-04-26",
+            "desc": "Gurgaon to Gurgaon",
+            "amount": "151",
+            "customer": "Sensetek相關行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\26-Apr-26-Gurgaon to Gurgaon-151.pdf"
+        },
+        {
+            "date": "2026-04-28",
+            "desc": "Gurgaon to Delhi",
+            "amount": "371",
+            "customer": "返回工廠行程",
+            "path": "E:\\Projects\\Voucher management\\Apr\\Transportation\\28-Apr-26-Gurgaon to Delhi-371.pdf"
+        }
+    ]
+}

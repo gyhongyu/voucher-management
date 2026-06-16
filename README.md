@@ -1,6 +1,13 @@
 # 報銷單據管理系統工作流說明 (Reimbursement Voucher Management Workflow)
 
-此文件旨在為接手的 AI 代理提供本專案的最新工作流程指南、目錄結構說明及注意事項。
+> [!IMPORTANT]
+> **🚨 專案屬性重要說明 (IMPORTANT NOTE FOR USERS & DEVELOPERS)**
+> 本專案**不是**一個獨立運行的應用程式 (Standalone App)，也沒有內建任何雲端大模型 API。
+> 它是一個專門設計與 **AI IDE 代理人 (如 Antigravity, Claude, Cursor, Codex 等 AI Agents)** 協同運作的「AI 代理原生工作流」。
+>
+> 專案中的 Python 腳本（`rename_vouchers.py`、`generate_dashboard.py`）僅作為本地執行輔助。當遇到無法自動解析的發票圖片或掃描 PDF 時，**必須依賴具備視覺 (Vision) 能力的 AI 代理人**進入目錄進行識別與重新命名。若您是一般使用者且未使用 AI 代理人，則需手動介入校對與命名。
+
+此文件旨在為接手的 AI 代理及開發者提供本專案的最新工作流程指南、目錄結構說明及注意事項。
 
 ---
 
