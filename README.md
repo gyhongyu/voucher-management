@@ -20,7 +20,7 @@
 所有腳本皆放在**專案根目錄**下，數據則依「月份」歸檔在子資料夾中：
 ```text
 E:\Projects\Voucher management\
-├── rename_vouchers.py             # [公用腳本] 圖片轉換與交通單據自動重命名
+├── rename_vouchers.py             # [公用腳本] 圖片轉換與交通/雜項單據自動重命名標記
 ├── generate_dashboard.py          # [公用腳本] 掃描檔案並生成 Reimbursement.html
 ├── README.md                      # [本文檔] 工作流說明文件
 ├── Mar\                           # 三月份數據 (已整理)
@@ -31,9 +31,10 @@ E:\Projects\Voucher management\
 │   ├── Public Relations\
 │   ├── Transportation\
 │   └── Reimbursement.html
-└── May to Jun\                    # 五至六月份數據 (待處理)
+└── Jul\                           # 七月份數據
     ├── Public Relations\          # 存放公關單據 (包含 JPG/PNG 圖片及 PDF)
     ├── Transportation\            # 存放交通單據 (包含計程車 PDF 收據)
+    ├── Other Expenses\            # 存放其他費用單據 (如手續費、清關服務費、雜項 PDF/圖片)
     └── .backup_images\            # [自動生成] 用於存放已被轉換成 PDF 的原始圖片備份
 ```
 
@@ -50,10 +51,10 @@ E:\Projects\Voucher management\
 
 ## 4. 自動化工作流程 (Workflow)
 
-接手新月份（以 `May to Jun` 為例）的處理步驟如下：
+接手新月份的處理步驟如下：
 
 ### 步驟 1：單據收集與歸檔
-將所有原始發票圖片或 PDF 收據放至該月份對應的 `Public Relations` 與 `Transportation` 資料夾下。
+將所有原始發票圖片或 PDF 收據依類別放至該月份對應的 `Public Relations`、`Transportation` 與 `Other Expenses` 資料夾下。
 
 ### 步驟 2：執行公用命名與圖片轉換腳本
 在專案根目錄下執行：
@@ -81,12 +82,17 @@ python generate_dashboard.py "May to Jun"
 
 ### 步驟 5：網頁端編輯與導出
 1.  在瀏覽器中開啟該月份的 `Reimbursement.html`。
-2.  **補充客戶資訊**：點擊「客戶」欄位直接輸入對應客戶名稱（此欄位無法從檔名自動提取）。
+2.  **校對日期與編輯資訊**：
+    * **日期校對原則 (重要)**：特別是 Uber/計程車電子單據，預定日期、出發日期與開立發票日期可能不同。**一律以「實際行程/出發日期」為準進行記錄與歸檔**。
+    * 若自動解析出預定日期或日期不精確，可直接在網頁上**點擊「日期」欄位直接修改**（格式建議：`YYYY-MM-DD`）。
+    * **補充客戶資訊**：點擊「客戶」欄位直接輸入對應客戶名稱（此欄位無法從檔名自動提取）。
+    * 描述與金額亦支援直接點擊修改與長按複製。
 3.  點擊網頁右上角的 **「💾 導出數據 (JSON)」** 按鈕，導出 JSON 數據檔以供上報。
 
 ---
 
 ## 5. 開發與維護注意事項
+*   **交通單據日期認定規範**：Uber 等車資收據常有「預定時間」與「實際用車時間」之差異，人工校對或 AI 代理處理時，務必讀取行程細節中的實際搭乘出發時間作為單據日期。
 *   **路徑安全性**：公用腳本必須藉由參數傳入月份資料夾名稱，防止在根目錄亂改檔案。
 *   **無損合併 (Merge Cache)**：網頁端會自動將硬碟掃描到的最新檔案列表與 `localStorage` 快取比對並進行無損合併。清除瀏覽器快取會導致已編輯的「客戶名稱」遺失，應定期點擊導出 JSON 保存。
 

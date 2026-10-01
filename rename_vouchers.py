@@ -194,20 +194,21 @@ def main():
 
     pr_dir = os.path.join(month_dir, "Public Relations")
     trans_dir = os.path.join(month_dir, "Transportation")
+    other_dir = os.path.join(month_dir, "Other Expenses")
     backup_dir = os.path.join(month_dir, ".backup_images")
 
     # Ensure backup directory exists
     os.makedirs(backup_dir, exist_ok=True)
 
-    # 1. Convert any image files (.jpg, .png) to PDF in both directories
-    for directory in [pr_dir, trans_dir]:
+    # 1. Convert any image files (.jpg, .png) to PDF in all directories
+    for directory in [pr_dir, trans_dir, other_dir]:
         if os.path.exists(directory):
             convert_images_to_pdf(directory, backup_dir)
 
+    standard_pattern = re.compile(r'^\d{2}-[A-Za-z]{3}-\d{2}-.+-(\d+)\.(pdf|jpg)$', re.IGNORECASE)
+
     # 2. For Public Relations directory, tag any non-standard PDFs with [需要手動確認]_
-    # (PR doesn't have an auto-naming rule based on content, so they must be manually named)
     if os.path.exists(pr_dir):
-        standard_pattern = re.compile(r'^\d{2}-[A-Za-z]{3}-\d{2}-.+-(\d+)\.(pdf|jpg)$', re.IGNORECASE)
         for f in os.listdir(pr_dir):
             f_path = os.path.join(pr_dir, f)
             if os.path.isfile(f_path) and f.endswith('.pdf'):
@@ -216,7 +217,17 @@ def main():
                     os.rename(f_path, os.path.join(pr_dir, new_name))
                     print(f"已將非標準 PR 單據標記為手動確認: {f} -> {new_name}")
 
-    # 3. For Transportation directory, auto-rename PDFs
+    # 3. For Other Expenses directory, tag any non-standard PDFs with [需要手動確認]_
+    if os.path.exists(other_dir):
+        for f in os.listdir(other_dir):
+            f_path = os.path.join(other_dir, f)
+            if os.path.isfile(f_path) and f.endswith('.pdf'):
+                if not standard_pattern.match(f) and not f.startswith("[需要手動確認]_"):
+                    new_name = f"[需要手動確認]_{f}"
+                    os.rename(f_path, os.path.join(other_dir, new_name))
+                    print(f"已將非標準其他費用單據標記為手動確認: {f} -> {new_name}")
+
+    # 4. For Transportation directory, auto-rename PDFs
     if os.path.exists(trans_dir):
         process_pdf_vouchers(trans_dir)
 

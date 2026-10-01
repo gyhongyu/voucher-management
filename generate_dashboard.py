@@ -34,14 +34,29 @@ def main():
 
     month_name = sys.argv[1]
     workspace_root = r"E:\Projects\Voucher management"
-    month_dir = os.path.join(workspace_root, month_name)
+    
+    # 優先尋找 Business Trip 下的月份目錄，其次尋找根目錄或傳入的絕對路徑
+    candidate_paths = [
+        os.path.join(workspace_root, "Business Trip", month_name),
+        os.path.join(workspace_root, month_name),
+        month_name
+    ]
+    month_dir = None
+    for cp in candidate_paths:
+        if os.path.exists(cp) and os.path.isdir(cp):
+            month_dir = cp
+            break
 
-    if not os.path.exists(month_dir) or not os.path.isdir(month_dir):
-        print(f"錯誤: 找不到目標資料夾 '{month_dir}'")
-        sys.exit(1)
+    if not month_dir:
+        # 如果尚未建立，預設建立於 Business Trip 下
+        month_dir = os.path.join(workspace_root, "Business Trip", month_name)
+        if not os.path.exists(month_dir):
+            print(f"錯誤: 找不到目標資料夾 '{month_name}' (已搜尋: {candidate_paths})")
+            sys.exit(1)
 
     pr_dir = os.path.join(month_dir, "Public Relations")
     trans_dir = os.path.join(month_dir, "Transportation")
+    other_dir = os.path.join(month_dir, "Other Expenses")
 
     pr_items = []
     if os.path.exists(pr_dir):
@@ -58,6 +73,14 @@ def main():
                 parsed = parse_filename(os.path.join(trans_dir, f))
                 if parsed:
                     trans_items.append(parsed)
+
+    other_items = []
+    if os.path.exists(other_dir):
+        for f in os.listdir(other_dir):
+            if f.lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')):
+                parsed = parse_filename(os.path.join(other_dir, f))
+                if parsed:
+                    other_items.append(parsed)
 
     # Dynamic variables for HTML
     normalized_slug = month_name.lower().replace(" ", "_")
@@ -128,6 +151,8 @@ def main():
             padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.8rem; margin-right: 0.5rem;
         }}
         .btn-icon:hover {{ background: rgba(255, 255, 255, 0.1); color: white; }}
+        .btn-danger {{ color: #f87171; border-color: rgba(248, 113, 113, 0.2); }}
+        .btn-danger:hover {{ background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); }}
         .date-badge {{ background: rgba(255, 255, 255, 0.05); padding: 0.2rem 0.5rem; border-radius: 0.4rem; font-size: 0.85rem; color: var(--text-dim); }}
         .copy-toast {{
             position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
@@ -144,7 +169,7 @@ def main():
             <button class="btn-main" @click="exportData()">💾 導出數據 (JSON)</button>
         </div>
         <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-dim);">
-            💡 提示：點擊內容即可 **修改**；長按日期/描述/金額 0.5 秒即可 **複製**。所有更改將自動保存到瀏覽器。
+            💡 提示：點擊內容即可 **修改**；長按日期/描述/金額 0.5 秒即可 **複製**；點擊 **刪除** 按鈕可移除單據。所有更改將自動保存到瀏覽器。
         </div>
 
         <!-- 公關費 Section -->
@@ -170,7 +195,7 @@ def main():
                     <template x-for="(item, index) in prItems" :key="index">
                         <tr>
                             <td>
-                                <span class="date-badge copy-target" x-text="item.date" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></span>
+                                <div contenteditable="true" class="date-badge editable copy-target" x-text="item.date" @blur="updateItem('pr', index, 'date', $event.target.innerText)" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></div>
                             </td>
                             <td>
                                 <div contenteditable="true" class="editable copy-target" x-text="item.desc" @blur="updateItem('pr', index, 'desc', $event.target.innerText)" @mousedown="startTimer(item.desc)" @touchstart="startTimer(item.desc)"></div>
@@ -184,6 +209,7 @@ def main():
                             <td>
                                 <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
                                 <a :href="'file:///' + item.path.replace(/\\\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                                <button class="btn-icon btn-danger" @click="deleteItem('pr', index)">🗑️ 刪除</button>
                             </td>
                         </tr>
                     </template>
@@ -203,7 +229,7 @@ def main():
             <table>
                 <thead>
                     <tr>
-                        <th width="15%">日期</th>
+                        <th width="15%">日期 (長按複製)</th>
                         <th width="20%">路線描述</th>
                         <th width="20%">客戶 (長按複製)</th>
                         <th width="15%">金額</th>
@@ -214,7 +240,7 @@ def main():
                     <template x-for="(item, index) in transItems" :key="index">
                         <tr>
                             <td>
-                                <span class="date-badge copy-target" x-text="item.date" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></span>
+                                <div contenteditable="true" class="date-badge editable copy-target" x-text="item.date" @blur="updateItem('trans', index, 'date', $event.target.innerText)" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></div>
                             </td>
                             <td>
                                 <div contenteditable="true" class="editable copy-target" x-text="item.desc" @blur="updateItem('trans', index, 'desc', $event.target.innerText)" @mousedown="startTimer(item.desc)" @touchstart="startTimer(item.desc)"></div>
@@ -228,6 +254,52 @@ def main():
                             <td>
                                 <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
                                 <a :href="'file:///' + item.path.replace(/\\\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                                <button class="btn-icon btn-danger" @click="deleteItem('trans', index)">🗑️ 刪除</button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 其他費用 Section -->
+        <div class="section-card" x-show="otherItems && otherItems.length > 0">
+            <div class="section-header">
+                <div class="section-title">📦 其他費用 (Other Expenses)</div>
+                <div>
+                    <button class="btn-icon" @click="sortData('other')">📅 排序切換</button>
+                    <span class="date-badge" x-text="`共 ${{otherItems.length}} 筆`"></span>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="15%">日期 (長按複製)</th>
+                        <th width="20%">描述 (長按複製)</th>
+                        <th width="20%">客戶 (長按複製)</th>
+                        <th width="15%">金額 (長按複製)</th>
+                        <th width="30%">文件操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(item, index) in otherItems" :key="index">
+                        <tr>
+                            <td>
+                                <div contenteditable="true" class="date-badge editable copy-target" x-text="item.date" @blur="updateItem('other', index, 'date', $event.target.innerText)" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)"></div>
+                            </td>
+                            <td>
+                                <div contenteditable="true" class="editable copy-target" x-text="item.desc" @blur="updateItem('other', index, 'desc', $event.target.innerText)" @mousedown="startTimer(item.desc)" @touchstart="startTimer(item.desc)"></div>
+                            </td>
+                            <td>
+                                <div contenteditable="true" class="editable copy-target" x-text="item.customer || '-'" @blur="updateItem('other', index, 'customer', $event.target.innerText)" @mousedown="startTimer(item.customer)" @touchstart="startTimer(item.customer)" style="color: var(--text-dim);"></div>
+                            </td>
+                            <td>
+                                <div class="amount"><span contenteditable="true" class="editable copy-target" x-text="item.amount" @blur="updateItem('other', index, 'amount', $event.target.innerText)" @mousedown="startTimer(item.amount)" @touchstart="startTimer(item.amount)"></span></div>
+                            </td>
+                            <td>
+                                <button class="btn-icon" @click="copyText(item.path)">📎 複製路徑</button>
+                                <a :href="'file:///' + item.path.replace(/\\\\/g, '/')" target="_blank" class="btn-icon" style="text-decoration: none;">👁️ 預覽</a>
+                                <button class="btn-icon btn-danger" @click="deleteItem('other', index)">🗑️ 刪除</button>
                             </td>
                         </tr>
                     </template>
@@ -244,7 +316,9 @@ def main():
             
             const defaultData = {{
                 prItems: {json.dumps(pr_items, ensure_ascii=False)},
-                transItems: {json.dumps(trans_items, ensure_ascii=False)}
+                transItems: {json.dumps(trans_items, ensure_ascii=False)},
+                otherItems: {json.dumps(other_items, ensure_ascii=False)},
+                deletedPaths: []
             }};
 
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -252,39 +326,55 @@ def main():
             
             if (saved) {{
                 initialData = JSON.parse(saved);
+                initialData.otherItems = initialData.otherItems || [];
+                initialData.deletedPaths = initialData.deletedPaths || [];
+                const deletedSet = new Set(initialData.deletedPaths);
                 
                 // --- 無損合併邏輯 (Merge without destroying cache) ---
                 const defaultPaths = new Set([
                     ...defaultData.prItems.map(i => i.path),
-                    ...defaultData.transItems.map(i => i.path)
+                    ...defaultData.transItems.map(i => i.path),
+                    ...defaultData.otherItems.map(i => i.path)
                 ]);
 
                 // 1. 清理：移除快取中已經不存在於硬碟的檔案
                 const originalPrLen = initialData.prItems.length;
                 const originalTransLen = initialData.transItems.length;
+                const originalOtherLen = initialData.otherItems.length;
 
                 initialData.prItems = initialData.prItems.filter(i => defaultPaths.has(i.path));
                 initialData.transItems = initialData.transItems.filter(i => defaultPaths.has(i.path));
+                initialData.otherItems = initialData.otherItems.filter(i => defaultPaths.has(i.path));
                 
-                let isUpdated = (originalPrLen !== initialData.prItems.length) || (originalTransLen !== initialData.transItems.length);
+                let isUpdated = (originalPrLen !== initialData.prItems.length) || 
+                                (originalTransLen !== initialData.transItems.length) ||
+                                (originalOtherLen !== initialData.otherItems.length);
 
-                // 2. 新增：找出快取中保留下來的路徑
+                // 2. 新增：找出快取中保留下來的路徑，且排除黑名單 deletedPaths
                 const existingPaths = new Set([
                     ...initialData.prItems.map(i => i.path),
-                    ...initialData.transItems.map(i => i.path)
+                    ...initialData.transItems.map(i => i.path),
+                    ...initialData.otherItems.map(i => i.path)
                 ]);
                 
-                // 檢查硬碟上的新單據，將其加入快取
+                // 檢查硬碟上的新單據，將其加入快取 (排除已刪除檔案)
                 defaultData.prItems.forEach(item => {{
-                    if (!existingPaths.has(item.path)) {{
+                    if (!existingPaths.has(item.path) && !deletedSet.has(item.path)) {{
                         initialData.prItems.push(item);
                         isUpdated = true;
                     }}
                 }});
                 
                 defaultData.transItems.forEach(item => {{
-                    if (!existingPaths.has(item.path)) {{
+                    if (!existingPaths.has(item.path) && !deletedSet.has(item.path)) {{
                         initialData.transItems.push(item);
+                        isUpdated = true;
+                    }}
+                }});
+
+                defaultData.otherItems.forEach(item => {{
+                    if (!existingPaths.has(item.path) && !deletedSet.has(item.path)) {{
+                        initialData.otherItems.push(item);
                         isUpdated = true;
                     }}
                 }});
@@ -300,29 +390,48 @@ def main():
             return {{
                 prItems: initialData.prItems,
                 transItems: initialData.transItems,
+                otherItems: initialData.otherItems,
+                deletedPaths: initialData.deletedPaths || [],
                 prSortAsc: false,
                 transSortAsc: false,
+                otherSortAsc: false,
                 showToast: false,
                 toastMsg: '',
                 pressTimer: null,
 
                 updateItem(type, index, field, value) {{
-                    const list = type === 'pr' ? this.prItems : this.transItems;
+                    const list = type === 'pr' ? this.prItems : (type === 'trans' ? this.transItems : this.otherItems);
                     list[index][field] = value;
                     this.saveToLocal();
+                }},
+
+                deleteItem(type, index) {{
+                    const list = type === 'pr' ? this.prItems : (type === 'trans' ? this.transItems : this.otherItems);
+                    const item = list[index];
+                    if (confirm(`確定要從儀表板中移除此筆記錄嗎？\\n描述：${{item.desc}}\\n金額：${{item.amount}}`)) {{
+                        if (item.path && !this.deletedPaths.includes(item.path)) {{
+                            this.deletedPaths.push(item.path);
+                        }}
+                        list.splice(index, 1);
+                        this.saveToLocal();
+                        this.notify('已成功移除記錄');
+                    }}
                 }},
 
                 saveToLocal() {{
                     localStorage.setItem(STORAGE_KEY, JSON.stringify({{
                         prItems: this.prItems,
-                        transItems: this.transItems
+                        transItems: this.transItems,
+                        otherItems: this.otherItems,
+                        deletedPaths: this.deletedPaths
                     }}));
                 }},
 
                 exportData() {{
                     const data = JSON.stringify({{
                         prItems: this.prItems,
-                        transItems: this.transItems
+                        transItems: this.transItems,
+                        otherItems: this.otherItems
                     }}, null, 4);
                     const blob = new Blob([data], {{ type: 'application/json' }});
                     const url = URL.createObjectURL(blob);
@@ -354,9 +463,12 @@ def main():
                     if (type === 'pr') {{
                         this.prSortAsc = !this.prSortAsc;
                         this.prItems.sort((a, b) => this.prSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
-                    }} else {{
+                    }} else if (type === 'trans') {{
                         this.transSortAsc = !this.transSortAsc;
                         this.transItems.sort((a, b) => this.transSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+                    }} else {{
+                        this.otherSortAsc = !this.otherSortAsc;
+                        this.otherItems.sort((a, b) => this.otherSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
                     }}
                     this.saveToLocal();
                 }}
@@ -372,11 +484,11 @@ def main():
         f.write(html_content)
 
     print(f"成功生成網頁儀表板: '{html_path}'")
-    print(f"已載入 {len(pr_items)} 筆公關費單據，{len(trans_items)} 筆交通費單據。")
+    print(f"已載入 {len(pr_items)} 筆公關費單據，{len(trans_items)} 筆交通費單據，{len(other_items)} 筆其他費用單據。")
 
     # 4. Report files needing manual check
     manual_reviews = []
-    for directory in [pr_dir, trans_dir]:
+    for directory in [pr_dir, trans_dir, other_dir]:
         if os.path.exists(directory):
             for file_in_dir in os.listdir(directory):
                 if file_in_dir.startswith("[需要手動確認]_"):
@@ -385,7 +497,7 @@ def main():
     if manual_reviews:
         print("\n⚠️ 待辦清單：以下檔案仍需要人工/AI代理進行多模態視覺辨識與手動重命名：")
         for idx, (directory, f_name) in enumerate(manual_reviews, 1):
-            category = "公關費" if "Public Relations" in directory else "交通費"
+            category = "公關費" if "Public Relations" in directory else ("交通費" if "Transportation" in directory else "其他費用")
             print(f"  {idx}. [{category}] {f_name}")
     else:
         print("\n🎉 所有單據皆已成功解析並完成標準化命名！")

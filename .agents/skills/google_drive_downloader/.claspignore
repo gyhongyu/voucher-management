@@ -1,0 +1,5 @@
+# claspignore
+**/**
+!appsscript.json
+!**/*.js
+!**/*.gs

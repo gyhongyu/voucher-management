@@ -6,3 +6,9 @@
 
 # 忽略備份的原始圖片（已被轉換為 PDF 格式）
 **/.backup_images/
+
+# 忽略自動歸檔之歷史出差單據目錄（等待使用者清理）
+archive/
+Business Trip/
+*.log
+test_output*.txt
