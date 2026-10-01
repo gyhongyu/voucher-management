@@ -74,7 +74,7 @@ py .agents\skills\voucher_pipeline_manager\scripts\voucher_pipeline.py "<月份�
 ---
 
 ## 📁 模組結構
-
-- 核心流水線引擎：[`scripts/voucher_pipeline.py`](file:///e:/Projects/Voucher%20management/.agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py)
-- 本地儀表板生成器：[`generate_dashboard.py`](file:///e:/Projects/Voucher%20management/generate_dashboard.py)
-- 本地圖片與文字處理底座：[`rename_vouchers.py`](file:///e:/Projects/Voucher%20management/rename_vouchers.py)
+ 
+- 核心流水線總管：[`scripts/voucher_pipeline.py`](file:///e:/Projects/Voucher%20management/.agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py)
+- 本地儀表板生成引擎：[`scripts/generate_dashboard.py`](file:///e:/Projects/Voucher%20management/.agents/skills/voucher_pipeline_manager/scripts/generate_dashboard.py)
+- 本地單據處理底座：[`rename_vouchers.py`](file:///e:/Projects/Voucher%20management/rename_vouchers.py)

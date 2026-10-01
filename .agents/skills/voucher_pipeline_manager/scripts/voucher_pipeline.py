@@ -306,13 +306,17 @@ def run_pipeline(month_name: str, workspace_root: Optional[Path] = None) -> None
 
     # 階段 4: 總表儀表板產出
     print("\n📊 [階段 4/4] 掃描單據並生成總表儀表板 (Reimbursement.html)...")
-    dashboard_script = root / "generate_dashboard.py"
+    # 優先調用技能內部高內聚腳本，其次回退根目錄
+    internal_dashboard = Path(__file__).resolve().parent / "generate_dashboard.py"
+    root_dashboard = root / "generate_dashboard.py"
+    dashboard_script = internal_dashboard if internal_dashboard.exists() else root_dashboard
+
     if dashboard_script.exists():
         import subprocess
         res = subprocess.run([sys.executable, str(dashboard_script), month_name], cwd=str(root), capture_output=True, text=True, encoding="utf-8")
         print(f"   {res.stdout.strip()}")
     else:
-        print("⚠️ 未找到根目錄 generate_dashboard.py，跳過總表生成。")
+        print("⚠️ 未找到 generate_dashboard.py，跳過總表生成。")
 
     print("\n" + "=" * 70)
     print(f"🎉 '{month_name}' 單據管線處理完畢！")
