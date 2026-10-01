@@ -1221,7 +1221,18 @@ def main():
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
+    # 自動同步保存本地 JSON 數據 (軌道 B：免去瀏覽器手動選目錄匯出)
+    json_filename = f"{month_name.replace(' ', '_')}_Vouchers.json"
+    json_path = os.path.join(month_dir, json_filename)
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "prItems": pr_items,
+            "transItems": trans_items,
+            "otherItems": other_items
+        }, f, ensure_ascii=False, indent=4)
+
     print(f"成功生成網頁儀表板: '{html_path}'")
+    print(f"同步生成本地數據總帳: '{json_path}'")
     print(f"已載入 {len(pr_items)} 筆公關費單據，{len(trans_items)} 筆交通費單據，{len(other_items)} 筆其他費用單據。")
 
     # 4. Report files needing manual check

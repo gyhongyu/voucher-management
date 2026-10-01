@@ -36,8 +36,11 @@ description: >
 ## 🚦 CLI 標準調用命令
 
 ```bash
-# 對指定月份資料夾執行全套管線處理 (自動分流 ➔ 圖片轉PDF ➔ 交通單據文字萃取命名 ➔ 生成 Reimbursement.html)
+# 模式 1：對指定月份資料夾執行全套管線處理 (自動分流 ➔ 圖片轉PDF ➔ 交通單據文字萃取命名 ➔ 生成 Reimbursement.html 與本地 JSON)
 py .agents\skills\voucher_pipeline_manager\scripts\voucher_pipeline.py "Sep 2026"
+
+# 模式 2：漏上傳單據「微創補登」 (不推倒整份 HTML，自動辨識、標準歸位、生成預覽圖、微創追加 defaultData 與本地 JSON)
+py .agents\skills\voucher_pipeline_manager\scripts\voucher_pipeline.py patch "<單據檔案路徑>" --month "Sep 2026" --type trans
 ```
 
 ---
