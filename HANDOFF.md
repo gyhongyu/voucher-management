@@ -58,35 +58,35 @@ py -X utf8 .agents\skills\agent_code_map\scripts\map.py
 ## 3. 系統現況與已固化基線 (System Baseline & Assets)
 
 - **`Sep 2026` 單據現狀**：
-  - 交通費 (Transportation): 15 筆，全數標準命名完成。
+  - 交通費 (Transportation): 16 筆（含已補登歸位的 9/25 Manesar ₹539 單據），全數標準命名完成。
   - 公關費 (Public Relations): 3 筆，經 AI 視覺開眼識別全數標準命名完成。
+  - 結構化總帳：[`Business Trip/Sep 2026/Sep_2026_Vouchers.json`](file:///e:/Projects/Voucher%20management/Business%20Trip/Sep%202026/Sep_2026_Vouchers.json)（共 19 筆，免推倒 HTML，隨時供外部腳本/AI 讀取）。
   - 當前總表：[`Business Trip/Sep 2026/Reimbursement.html`](file:///e:/Projects/Voucher%20management/Business%20Trip/Sep%202026/Reimbursement.html)（支援滑鼠左鍵平移拖曳、邊界調整、多頁垂直無縫拼接、抽屜開啟操作欄自適應）。
-- **待處理的漏上傳單據（現場孤兒檔案）**：
-  - 檔案：[`receipt_14a702de-f3bb-4be0-b154-de9e5edf7d8c.pdf`](file:///e:/Projects/Voucher%20management/receipt_14a702de-f3bb-4be0-b154-de9e5edf7d8c.pdf)
-  - 經探測內容：
-    - 日期：`2026/09/25`
-    - 金額：`₹538.52`（四捨五入 539）
-    - 路線：`Gurgaon (Sector 22) to Manesar (Sector 5)`
-    - 類別：交通費 (Transportation)
-    - 建議標準檔名：`25-Sep-26-Gurgaon to Manesar-539.pdf`
+- **待補單據處理結果**：
+  - 原根目錄孤兒檔案 `receipt_14a702de-f3bb-4be0-b154-de9e5edf7d8c.pdf` 已成功補登歸位至：
+    `Business Trip/Sep 2026/Transportation/25-Sep-26-Gurgaon to Manesar-539.pdf`。
+  - 舊版過渡腳本 `rename_vouchers.py` 已安全退役刪除，代碼全數內聚於技能目錄。
 
 ---
 
-## 4. 下一棒核心待辦任務 (Immediate Action Items)
+## 4. 下一棒核心待辦任務與技能調用指引 (Immediate Action Items & Guidelines)
 
-### 🎯 核心使命：與用戶研究「漏單據補件流水線機制」，並完成現有漏單補登
+### 🎯 核心使命：維持微創補登管線高可用，嚴禁推倒 HTML！
 
-1. **第一優先：與用戶進行【補單管線架構研究與討論】**：
-   - 用戶提出痛點：*「總表做好後，後續才發現有單據漏上傳，這時候要怎麼補？管線該如何設計？」*
-   - 請向用戶說明現狀管線行為，並提出補單管線架構設計：
-     - **方案 A（管線原地增量補登 - 現行即支援）**：將漏上傳單據放入 `Business Trip/Sep 2026/Transportation/` 或根目錄，執行 `py .agents\skills\voucher_pipeline_manager\scripts\voucher_pipeline.py "Sep 2026"`。目前代碼已具備增量合併邏輯（`defaultData` 會安全聯集既有 localStorage，不會覆蓋已編輯備註）。
-     - **方案 B（專屬補單 CLI 插件）**：新增 `voucher_pipeline.py patch <檔案路徑> --month "Sep 2026"`，自動解析、歸檔、重算並刷新總表。
-     - **方案 C（網頁儀表板前端直接補件）**：在 `Reimbursement.html` 支援拖曳 PDF/圖片直接新增一列並即時持久化。
-2. **第二動作：落地處理當前這張漏上傳單據**：
-   - 經討論確認後，將 `receipt_14a702de-f3bb-4be0-b154-de9e5edf7d8c.pdf` 標準化更名並補登至 `Business Trip/Sep 2026/`，刷新總表。
+1. **遇漏單據補件場景（強烈推薦）**：
+   - 強制調用已固化之微創補登指令，直接單點突破：
+     ```bash
+     py .agents\skills\voucher_pipeline_manager\scripts\voucher_pipeline.py patch "<單據路徑>" --month "<月份>" --type trans
+     ```
+   - 效益：不推倒整份 HTML，自動解析、垂直拼接預覽圖、局部追加 defaultData 與同步更新本地 `<月份>_Vouchers.json`。
+2. **遇全新月份全量建置場景**：
+   - 執行全量管線：
+     ```bash
+     py .agents\skills\voucher_pipeline_manager\scripts\voucher_pipeline.py "<新月份名稱>"
+     ```
 3. **改動實施單一真理源**：
    - 技能代碼位於 `.agents/skills/voucher_pipeline_manager/scripts/`。
    - 修改完成後，本地 Git 提交保存，嚴禁未授權 push。
 
 ---
-*最後交接更新：2026-10-01 會話封裝完畢，雙門禁審計與心智模型已就緒。*
+*最後交接更新：2026-10-01 補單管線升級完畢，舊腳本清理，雙門禁審計與心智模型已就緒。*
