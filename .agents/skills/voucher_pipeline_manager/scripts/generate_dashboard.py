@@ -6,6 +6,8 @@ import sys
 # Ensure output encoding is UTF-8 for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
 
+import io
+from PIL import Image
 import fitz  # PyMuPDF for fast zero-CORS preview image rendering
 
 def ensure_preview_image(pdf_or_img_path, previews_dir):
@@ -26,16 +28,32 @@ def ensure_preview_image(pdf_or_img_path, previews_dir):
     try:
         if ext.lower() == '.pdf':
             doc = fitz.open(pdf_or_img_path)
-            if len(doc) > 0:
+            num_pages = len(doc)
+            if num_pages == 1:
                 page = doc[0]
-                # 2x 分辨率渲染以確保高清清晰度 (144 DPI)
                 pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
                 pix.save(preview_full_path)
-                doc.close()
-                return preview_filename
+            elif num_pages > 1:
+                # 使用 Pillow (PIL) 進行 100% 可靠之多頁垂直拼接 (2x 高清)
+                page_images = []
+                for i in range(num_pages):
+                    pix = doc[i].get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
+                    img_bytes = pix.tobytes("png")
+                    page_images.append(Image.open(io.BytesIO(img_bytes)))
+                
+                total_w = max(im.width for im in page_images)
+                total_h = sum(im.height for im in page_images)
+                
+                combined_img = Image.new("RGB", (total_w, total_h), (255, 255, 255))
+                curr_y = 0
+                for im in page_images:
+                    combined_img.paste(im, (0, curr_y))
+                    curr_y += im.height
+                
+                combined_img.save(preview_full_path, "PNG")
             doc.close()
+            return preview_filename
         elif ext.lower() in ['.jpg', '.jpeg', '.png']:
-            # 圖片直接複製或由 PyMuPDF 轉換
             import shutil
             shutil.copy2(pdf_or_img_path, preview_full_path)
             return preview_filename
@@ -428,6 +446,18 @@ def main():
             color: #e2e8f0;
             letter-spacing: 0.02em;
         }}
+        /* 抽屜底部當前單據操作欄 */
+        .drawer-footer {{
+            padding: 0.75rem 1.25rem;
+            background: #1e293b;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .clickable-row {{
+            cursor: pointer;
+        }}
         .badge-count {{
             background: rgba(99, 102, 241, 0.15);
             color: #818cf8;
@@ -576,17 +606,17 @@ def main():
                 <table>
                     <thead>
                         <tr>
-                            <th width="14%">日期</th>
-                            <th width="20%">描述</th>
-                            <th width="12%">客戶</th>
-                            <th width="22%">摘要</th>
-                            <th width="12%">金額</th>
-                            <th width="20%">操作</th>
+                            <th :width="drawerOpen ? '18%' : '14%'">日期</th>
+                            <th :width="drawerOpen ? '26%' : '20%'">描述</th>
+                            <th :width="drawerOpen ? '16%' : '12%'">客戶</th>
+                            <th :width="drawerOpen ? '26%' : '22%'">摘要</th>
+                            <th :width="drawerOpen ? '14%' : '12%'">金額</th>
+                            <th width="20%" x-show="!drawerOpen">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, index) in prItems" :key="index">
-                            <tr :class="{{ 'active-row': isCurrentItem('pr', index) }}" :id="'row-pr-' + index">
+                            <tr :class="{{ 'active-row': isCurrentItem('pr', index), 'clickable-row': drawerOpen }}" :id="'row-pr-' + index" @click="drawerOpen && selectPreview('pr', index)">
                                 <td>
                                     <div contenteditable="true" class="date-badge editable copy-target" x-text="item.date" @blur="updateItem('pr', index, 'date', $event.target.innerText)" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)" title="長按複製日期"></div>
                                 </td>
@@ -602,7 +632,7 @@ def main():
                                 <td>
                                     <div class="amount"><span contenteditable="true" class="editable copy-target" x-text="item.amount" @blur="updateItem('pr', index, 'amount', $event.target.innerText)" @mousedown="startTimer(item.amount)" @touchstart="startTimer(item.amount)" title="長按複製金額"></span></div>
                                 </td>
-                                <td>
+                                <td x-show="!drawerOpen">
                                     <div style="display: flex; gap: 0.35rem; align-items: center;">
                                         <button class="btn-icon" @click="copyText(item.path)" title="複製單據硬碟路徑">📎 路徑</button>
                                         <button class="btn-icon btn-preview" :class="{{ 'active': isCurrentItem('pr', index) }}" @click="selectPreview('pr', index)">👁️ 預覽</button>
@@ -629,17 +659,17 @@ def main():
                 <table>
                     <thead>
                         <tr>
-                            <th width="14%">日期</th>
-                            <th width="20%">描述</th>
-                            <th width="12%">客戶</th>
-                            <th width="22%">摘要</th>
-                            <th width="12%">金額</th>
-                            <th width="20%">操作</th>
+                            <th :width="drawerOpen ? '18%' : '14%'">日期</th>
+                            <th :width="drawerOpen ? '26%' : '20%'">描述</th>
+                            <th :width="drawerOpen ? '16%' : '12%'">客戶</th>
+                            <th :width="drawerOpen ? '26%' : '22%'">摘要</th>
+                            <th :width="drawerOpen ? '14%' : '12%'">金額</th>
+                            <th width="20%" x-show="!drawerOpen">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, index) in transItems" :key="index">
-                            <tr :class="{{ 'active-row': isCurrentItem('trans', index) }}" :id="'row-trans-' + index">
+                            <tr :class="{{ 'active-row': isCurrentItem('trans', index), 'clickable-row': drawerOpen }}" :id="'row-trans-' + index" @click="drawerOpen && selectPreview('trans', index)">
                                 <td>
                                     <div contenteditable="true" class="date-badge editable copy-target" x-text="item.date" @blur="updateItem('trans', index, 'date', $event.target.innerText)" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)" title="長按複製日期"></div>
                                 </td>
@@ -655,7 +685,7 @@ def main():
                                 <td>
                                     <div class="amount"><span contenteditable="true" class="editable copy-target" x-text="item.amount" @blur="updateItem('trans', index, 'amount', $event.target.innerText)" @mousedown="startTimer(item.amount)" @touchstart="startTimer(item.amount)" title="長按複製金額"></span></div>
                                 </td>
-                                <td>
+                                <td x-show="!drawerOpen">
                                     <div style="display: flex; gap: 0.35rem; align-items: center;">
                                         <button class="btn-icon" @click="copyText(item.path)" title="複製單據硬碟路徑">📎 路徑</button>
                                         <button class="btn-icon btn-preview" :class="{{ 'active': isCurrentItem('trans', index) }}" @click="selectPreview('trans', index)">👁️ 預覽</button>
@@ -682,17 +712,17 @@ def main():
                 <table>
                     <thead>
                         <tr>
-                            <th width="14%">日期</th>
-                            <th width="20%">描述</th>
-                            <th width="12%">客戶</th>
-                            <th width="22%">摘要</th>
-                            <th width="12%">金額</th>
-                            <th width="20%">操作</th>
+                            <th :width="drawerOpen ? '18%' : '14%'">日期</th>
+                            <th :width="drawerOpen ? '26%' : '20%'">描述</th>
+                            <th :width="drawerOpen ? '16%' : '12%'">客戶</th>
+                            <th :width="drawerOpen ? '26%' : '22%'">摘要</th>
+                            <th :width="drawerOpen ? '14%' : '12%'">金額</th>
+                            <th width="20%" x-show="!drawerOpen">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, index) in otherItems" :key="index">
-                            <tr :class="{{ 'active-row': isCurrentItem('other', index) }}" :id="'row-other-' + index">
+                            <tr :class="{{ 'active-row': isCurrentItem('other', index), 'clickable-row': drawerOpen }}" :id="'row-other-' + index" @click="drawerOpen && selectPreview('other', index)">
                                 <td>
                                     <div contenteditable="true" class="date-badge editable copy-target" x-text="item.date" @blur="updateItem('other', index, 'date', $event.target.innerText)" @mousedown="startTimer(item.date)" @touchstart="startTimer(item.date)" title="長按複製日期"></div>
                                 </td>
@@ -708,7 +738,7 @@ def main():
                                 <td>
                                     <div class="amount"><span contenteditable="true" class="editable copy-target" x-text="item.amount" @blur="updateItem('other', index, 'amount', $event.target.innerText)" @mousedown="startTimer(item.amount)" @touchstart="startTimer(item.amount)" title="長按複製金額"></span></div>
                                 </td>
-                                <td>
+                                <td x-show="!drawerOpen">
                                     <div style="display: flex; gap: 0.35rem; align-items: center;">
                                         <button class="btn-icon" @click="copyText(item.path)" title="複製單據硬碟路徑">📎 路徑</button>
                                         <button class="btn-icon btn-preview" :class="{{ 'active': isCurrentItem('other', index) }}" @click="selectPreview('other', index)">👁️ 預覽</button>
@@ -761,6 +791,18 @@ def main():
                  @wheel.prevent="onWheelZoom($event)">
                 <div class="canvas-container" :style="`transform: translate(${{panX}}px, ${{panY}}px) scale(${{zoomScale}}) rotate(${{rotation}}deg); transform-origin: center center;`">
                     <img :src="currentPreviewImg" class="image-preview" alt="單據預覽">
+                </div>
+            </div>
+
+            <!-- 抽屜底部：當前預覽單據之操作列 (為左側表格騰出完整顯示空間) -->
+            <div class="drawer-footer" x-show="currentItem">
+                <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; gap: 0.5rem; overflow: hidden; max-width: 60%;">
+                    <span style="color: #38bdf8; font-weight: 600;" x-text="currentItem ? (currentItem.date + ' ' + (currentItem.desc || '')) : ''"></span>
+                    <span style="color: #4ade80; font-family: 'JetBrains Mono', monospace;" x-text="currentItem ? ('₹' + currentItem.amount) : ''"></span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn-icon" @click="currentItem && copyText(currentItem.path)" title="複製單據硬碟路徑">📎 複製硬碟路徑</button>
+                    <button class="btn-icon btn-danger" @click="deleteCurrentItem()" title="刪除這筆單據">🗑️ 刪除此單據</button>
                 </div>
             </div>
         </div>
@@ -924,6 +966,12 @@ def main():
                     return this.drawerOpen && this.activeCategory === category && this.activeIndex === index;
                 }},
 
+                get currentItem() {{
+                    if (!this.drawerOpen || this.activeIndex === -1) return null;
+                    const list = this.activeCategory === 'pr' ? this.prItems : (this.activeCategory === 'trans' ? this.transItems : this.otherItems);
+                    return (list && list[this.activeIndex]) ? list[this.activeIndex] : null;
+                }},
+
                 selectPreview(category, index) {{
                     this.activeCategory = category;
                     this.activeIndex = index;
@@ -1076,6 +1124,11 @@ def main():
                         this.saveToLocal();
                         this.notify('已成功移除記錄');
                     }}
+                }},
+
+                deleteCurrentItem() {{
+                    if (!this.drawerOpen || this.activeIndex === -1) return;
+                    this.deleteItem(this.activeCategory, this.activeIndex);
                 }},
 
                 saveToLocal() {{
