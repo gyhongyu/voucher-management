@@ -6,7 +6,7 @@ description: 專案專屬代碼地圖、AST 語法拓撲與調用鏈穿透大師
 
 # 🗺️ 專案專屬代碼地圖與調用鏈穿透 (agent_code_map)
 
-本專案已播種原生自包含的代碼地圖微型引擎，100% 依賴 Python 標準庫 (`ast`, `re`, `os`, `sys`)，零外部 pip 套件依賴、零 LLM API 消耗、100% 純本機運算。
+本專案已播種原生自包含的代碼地圖微型引擎，100% 依賴 Python 標準庫 (`ast`, `re`, `os`, `sys`)，零外部 pip 套件依賴、零 LLM API 消耗、100% 純本機運算。若環境具備 `jedi`，自動解鎖高精語意推導。
 
 ---
 
@@ -33,18 +33,26 @@ py .agents\skills\agent_code_map\scripts\map.py
 py .agents\skills\agent_code_map\scripts\map.py src\core
 ```
 
-### 2. 微觀呼叫者穿透 (Callers Tracing)
-查詢某個函式/方法被專案中「哪些檔案、哪些類別、哪一行」呼叫（攜帶 Scope 與調用 Snippet）：
+### 2. 微觀雙查與呼叫者穿透 (Unified Search & Callers Tracing)
+一鍵同時定位符號的「原始定義位置」與專案內「所有呼叫點」（攜帶 Scope 與調用 Snippet）：
 ```powershell
 py .agents\skills\agent_code_map\scripts\callers.py <symbol_name>
-# 或顯式指定 action
-py .agents\skills\agent_code_map\scripts\callers.py callers <symbol_name>
 ```
 
 ### 3. 原始定義尋址 (Go to Definition)
 定位類別或函式的原始定義宣告位置：
 ```powershell
-py .agents\skills\agent_code_map\scripts\callers.py --def <symbol_name>
-# 或顯式指定 action
 py .agents\skills\agent_code_map\scripts\callers.py def <symbol_name>
+```
+
+### 4. 函式文檔與簽名抽取 (Doc & Signature)
+直接提取指定函式或類別的參數簽名與 Docstring（節省大量 Token 暴力讀檔）：
+```powershell
+py .agents\skills\agent_code_map\scripts\callers.py doc <symbol_name>
+```
+
+### 5. 前端 Web DOM 錨點定位 (HTML / JS DOM Locator)
+秒查 HTML/JS 中的 ID 錨點、Class 樣式或 `querySelector` 綁定點：
+```powershell
+py .agents\skills\agent_code_map\scripts\callers.py dom <id_or_class>
 ```

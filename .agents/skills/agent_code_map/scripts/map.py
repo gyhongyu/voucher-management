@@ -10,6 +10,12 @@ import re
 import argparse
 from collections import defaultdict
 
+# Windows console encoding defense
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # 引用同一目錄下的安全過濾器
 try:
     from ignore_filter import prune_walk

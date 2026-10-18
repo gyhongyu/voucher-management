@@ -6,6 +6,12 @@ ignore_filter.py - 高性能目錄修剪與忽略規則過濾器 (Path Pruning &
 import os
 import sys
 
+# Windows console encoding defense
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # 預設死穴黑名單目錄 (一律小寫比對)
 DEFAULT_IGNORED_DIRS = {
     # 專案重度數據/快取陷阱
