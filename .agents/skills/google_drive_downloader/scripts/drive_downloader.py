@@ -249,7 +249,7 @@ def sync_vouchers(project_root: Path, force_target: Optional[str] = None) -> Non
                     failed_count += 1
 
         print(f"\n✨ '{folder_name}' 下載完畢！成功拉取 {success_count} 個新檔案至 '{target_dir.name}/' (失敗: {failed_count})")
-        print(f"👉 下一步指引：請執行 `py rename_vouchers.py \"{target_dir.name}\"` 啟動圖片轉檔與自動命名管線！")
+        print(f"👉 下一步指引：請執行 `py .agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py run \"{target_dir.name}\"` 啟動圖片轉檔與自動命名管線！")
 
     print("\n" + "=" * 70)
     print("🎉 Google Drive 單向增量下載巡檢完成！")

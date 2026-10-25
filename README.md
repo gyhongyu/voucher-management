@@ -1,110 +1,120 @@
-# 報銷單據管理系統工作流說明 (Reimbursement Voucher Management Workflow)
+# 報銷單據管理系統 (Voucher Management Pipeline)
 
 > [!IMPORTANT]
-> **🚨 專案屬性重要說明 (IMPORTANT NOTE FOR USERS & DEVELOPERS)**
-> 本專案**不是**一個獨立運行的應用程式 (Standalone App)，也沒有內建任何雲端大模型 API。
-> 它是一個專門設計與 **AI IDE 代理人 (如 Antigravity, Claude, Cursor, Codex 等 AI Agents)** 協同運作的「AI 代理原生工作流」。
->
-> 專案中的 Python 腳本（`rename_vouchers.py`、`generate_dashboard.py`）僅作為本地執行輔助。當遇到無法自動解析的發票圖片或掃描 PDF 時，**必須依賴具備視覺 (Vision) 能力的 AI 代理人**進入目錄進行識別與重新命名。若您是一般使用者且未使用 AI 代理人，則需手動介入校對與命名。
-
-此文件旨在為接手的 AI 代理及開發者提供本專案的最新工作流程指南、目錄結構說明及注意事項。
+> **🚨 專案架構重要聲明**
+> 本專案為標準的 **「AI 代理人原生 ＋ CLI 確定性管線」** 出差報銷單據治理系統。
+> 專案內已全面收斂至三大標準專案技能（`.agents/skills/`），遵循 **全域技能架構師 Authoring Standard v2.0** 與 **跨環境數據契約 ([data_contract.md](.agents/skills/voucher_pipeline_manager/references/data_contract.md))**。
+> 本地處理不依賴外部收費 API；當遇到掃描圖或手寫單據時，由具備多模態視覺（Vision）的 AI 代理人直接開眼協同命名。未來亦支援無縫擴展至 Web 靜態端（Vanilla JS + LLM API）雙軌並行。
 
 ---
 
-## 1. 專案概述
-本專案用於自動化整理及管理每月的報銷單據（如計程車收據、餐飲公關發票等），最終生成一個具備搜尋、編輯、排序及路徑複製功能的網頁端儀表板（`Reimbursement.html`），並能導出結構化的 JSON 數據。
+## 1. 核心管線三件套 (Core Skills Suite)
+
+專案嚴格將外部渠道攝取與內部數據清洗分離為 3 大專業技能：
+
+```mermaid
+graph LR
+    subgraph 1. 外部渠道攝取 (Ingestion)
+        A1["google_drive_downloader<br/>(Google Drive 雲端增量拉取)"]
+        A2["voucher_receipt_collector<br/>(Notes / Gmail 抓取 Uber 車單)"]
+    end
+
+    subgraph 2. 本地清洗與總表產出 (Processing & Presentation)
+        B["voucher_pipeline_manager<br/>(分流 ➔ 轉檔備份 ➔ 文字抽取更名 ➔ 儀表板/台帳 ➔ 微創補單)"]
+    end
+
+    A1 -->|Raw 檔案| B
+    A2 -->|Raw 檔案| B
+```
+
+| 技能模組 | 職責與邊界 | 常用指令 |
+| :--- | :--- | :--- |
+| **[`google_drive_downloader`](.agents/skills/google_drive_downloader/SKILL.md)** | 負責從 Google Drive `Business Trip` 雲端目錄單向增量同步出差發票至本地，具備防覆蓋保護。 | `py .agents/skills/google_drive_downloader/scripts/drive_downloader.py` |
+| **[`voucher_receipt_collector`](.agents/skills/voucher_receipt_collector/SKILL.md)** | 負責從企業 NotesMaster 或 GAS Gmail 網關檢索 Uber 乘車收據並導出為標準 PDF。 | `py .agents/skills/voucher_receipt_collector/scripts/voucher_receipt_collector.py collect --month "Sep-26" -o "Business Trip/Sep 2026/Transportation"` |
+| **[`voucher_pipeline_manager`](.agents/skills/voucher_pipeline_manager/SKILL.md)** | 本地主管線：散落單據智能分流、Pillow 圖片轉 PDF、PyMuPDF 交通單據正規命名、AI 開眼協同、生成 `Reimbursement.html` 與微創補登。 | `py .agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py run "<月份資料夾>"` |
 
 ---
 
-## 2. 目錄結構
-所有腳本皆放在**專案根目錄**下，數據則依「月份」歸檔在子資料夾中：
+## 2. 標準目錄結構
+
+所有出差月份統一存放於 `Business Trip/` 目錄下（具備歷史資料夾自動相容尋址）：
+
 ```text
 E:\Projects\Voucher management\
-├── rename_vouchers.py             # [公用腳本] 圖片轉換與交通/雜項單據自動重命名標記
-├── generate_dashboard.py          # [公用腳本] 掃描檔案並生成 Reimbursement.html
-├── README.md                      # [本文檔] 工作流說明文件
-├── Mar\                           # 三月份數據 (已整理)
-│   ├── Public Relations\
-│   ├── Transportation\
-│   └── Reimbursement.html
-├── Apr\                           # 四月份數據 (已整理)
-│   ├── Public Relations\
-│   ├── Transportation\
-│   └── Reimbursement.html
-└── Jul\                           # 七月份數據
-    ├── Public Relations\          # 存放公關單據 (包含 JPG/PNG 圖片及 PDF)
-    ├── Transportation\            # 存放交通單據 (包含計程車 PDF 收據)
-    ├── Other Expenses\            # 存放其他費用單據 (如手續費、清關服務費、雜項 PDF/圖片)
-    └── .backup_images\            # [自動生成] 用於存放已被轉換成 PDF 的原始圖片備份
+├── .agents/
+│   ├── rules/
+│   │   └── voucher_workflow_knowledge.md   # [按需喚醒] 新代理人進場認知與工作流規則
+│   └── skills/
+│       ├── google_drive_downloader/        # 雲端硬碟單向增量下載總管
+│       ├── voucher_receipt_collector/       # Notes/Gmail 收據收集大師
+│       └── voucher_pipeline_manager/       # 單據全流程流水線與儀表板總管
+├── Business Trip/                          # 出差單據核心目錄 (SSOT)
+│   └── Sep 2026/                           # 範例出差月份
+│       ├── Transportation/                 # 交通單據 (Uber / Cab / Toll PDF)
+│       ├── Public Relations/               # 公關費用 (宴請發票 / 餐廳收據)
+│       ├── Other Expenses/                 # 其他雜項 (清關 / 列印 / 雜費)
+│       ├── .backup_images/                 # 系統備份 (轉為 PDF 後的原始照片)
+│       ├── .previews/                      # 高清預覽 (垂直拼接避免 CORS 攔截圖)
+│       ├── Reimbursement.html              # 獨立報銷總表儀表板
+│       └── Sep_2026_Vouchers.json          # 結構化總帳數據
+├── README.md                               # [本文檔]
+└── AGENTS.md                               # [母法自鎖] 根目錄 1 行憲法
 ```
 
 ---
 
-## 3. 標準單據檔名格式
-所有整理完畢的單據必須符合以下正則表達式格式：
-`^(\d{2})-([A-Za-z]{3})-(\d{2})-(.+)-(\d+)\.(pdf|jpg|jpeg|png)$`
-*   **格式**：`{日期(DD-MMM-YY)}-{描述/路線}-{金額}.{副檔名}`
-*   **月份對照**：`Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec` (首字母大寫)
-*   **範例**：`08-Apr-26-Bengaluru-1690.pdf` 代表 2026年4月8日，於 Bengaluru，金額為 1690 的 PDF 單據。
+## 3. 數據契約與檔名標準 (Data Contract)
+
+為保障本地 Python 腳本與未來 Web 前端（Vanilla JS + LLM API）100% 同構，所有單據檔名必須完全符合統一正規：
+
+* **正規表達式**：
+  * Python: `^(\d{2})-([A-Za-z]{3})-(\d{2})-(.+)-(\d+)\.(pdf|jpg|jpeg|png)$`
+  * JavaScript: `/^(\d{2})-([A-Za-z]{3})-(\d{2})-(.+)-(\d+)\.(pdf|jpg|jpeg|png)$/i`
+* **格式說明**：`{DD}-{MMM}-{YY}-{Route_or_Description}-{Amount}.pdf`
+  * 例：`25-Sep-26-Gurgaon to Gurgaon-350.pdf`
+* **完整數據規範**：參閱 [`references/data_contract.md`](.agents/skills/voucher_pipeline_manager/references/data_contract.md)。
 
 ---
 
-## 4. 自動化工作流程 (Workflow)
+## 4. 標準作業流程 (SOP)
 
-接手新月份的處理步驟如下：
-
-### 步驟 1：單據收集與歸檔
-將所有原始發票圖片或 PDF 收據依類別放至該月份對應的 `Public Relations`、`Transportation` 與 `Other Expenses` 資料夾下。
-
-### 步驟 2：執行公用命名與圖片轉換腳本
-在專案根目錄下執行：
+### 階段一：單據攝取 (Ingestion)
+出差結束後，透過外部渠道拉取單據：
 ```bash
-python rename_vouchers.py "May to Jun"
+# 方式 A：從 Google Drive 增量同步出差單據
+py .agents/skills/google_drive_downloader/scripts/drive_downloader.py --month "Sep 2026"
+
+# 方式 B：從 Notes / Gmail 提取 Uber 乘車收據
+py .agents/skills/voucher_receipt_collector/scripts/voucher_receipt_collector.py collect --month "Sep-26" -o "Business Trip/Sep 2026/Transportation"
 ```
-**此腳本將自動執行以下動作**：
-1.  **圖片轉 PDF**：掃描並將所有 `.jpg`, `.jpeg`, `.png` 圖片利用 `Pillow` 轉換為 PDF，命名為 `[需要手動確認]_{原圖片名}.pdf`。
-2.  **原圖安全備份**：轉換成功的原始圖片將被移至 `May to Jun/.backup_images/` 資料夾，避免直接刪除可能導致的風險。
-3.  **交通收據文字解析**：針對 `Transportation` 下的電子 PDF 檔案，使用 `PyMuPDF` 提取文字並進行自動命名。若解析失敗，會被加上前綴 `[需要手動確認]_`。
 
-### 步驟 3：AI 代理視覺協作辨識（重要）
-對於檔案名帶有 `[需要手動確認]_` 前綴的檔案（如所有公關費圖片轉成的 PDF），由於無法自動解析文字，**接手此任務的 AI 代理需使用多模態視覺（Vision）能力**：
-1.  「看」這些發票/圖片的畫面內容。
-2.  識別出裡面的「日期」、「消費描述/路線」與「實付金額」。
-3.  使用命令列將檔案手動改名為標準格式（例如：`20-May-26-Client Dinner-2500.pdf`），移除 `[需要手動確認]_` 前綴。
-
-### 步驟 4：生成網頁端儀表板
-當所有單據皆已命名完成（或部分待確認）時，執行以下命令生成網頁：
+### 階段二：執行全自動流水線
 ```bash
-python generate_dashboard.py "May to Jun"
+py .agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py run "Sep 2026"
 ```
-這將在 `May to Jun/` 底下生成獨立的 `Reimbursement.html`。
-*   控制台會列印出目前**依然需要手動確認**的單據清單。
+腳本將全自動完成：
+1. 目錄結構自動補全（Transportation / Public Relations / Other Expenses / .backup_images）。
+2. 散落檔案特徵識別與自動分流。
+3. 圖片無損轉換為標準 PDF，原始照片搬遷至 `.backup_images/` 嚴防丟失。
+4. 電子 PDF 文字萃取、路線辨識與標準重命名。
+5. 渲染垂直拼接多頁預覽圖至 `.previews/`，並產出獨立 `Reimbursement.html` 與 `<月份>_Vouchers.json`。
 
-### 步驟 5：網頁端編輯與導出
-1.  在瀏覽器中開啟該月份的 `Reimbursement.html`。
-2.  **校對日期與編輯資訊**：
-    * **日期校對原則 (重要)**：特別是 Uber/計程車電子單據，預定日期、出發日期與開立發票日期可能不同。**一律以「實際行程/出發日期」為準進行記錄與歸檔**。
-    * 若自動解析出預定日期或日期不精確，可直接在網頁上**點擊「日期」欄位直接修改**（格式建議：`YYYY-MM-DD`）。
-    * **補充客戶資訊**：點擊「客戶」欄位直接輸入對應客戶名稱（此欄位無法從檔名自動提取）。
-    * 描述與金額亦支援直接點擊修改與長按複製。
-3.  點擊網頁右上角的 **「💾 導出數據 (JSON)」** 按鈕，導出 JSON 數據檔以供上報。
+### 階段三：AI 代理人多模態開眼（處理未辨識發票）
+若終端提示有帶 `[需要手動確認]_` 的單據（如餐飲照片或無文字層之掃描檔）：
+1. AI 代理人調用內置多模態視覺工具檢視該發票圖片。
+2. 辨識日期、店名與金額，並標準更名（如：`25-Sep-26-Restaurant Name-1500.pdf`）。
+3. 重新執行一次 `voucher_pipeline.py run "Sep 2026"` 刷新總表。
+
+### 階段四：後續漏單據微創追加（Zero-Overwrite）
+若後續有零星漏上傳的單據，**嚴禁全局推倒重新執行**，直接調用微創補單命令：
+```bash
+py .agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py patch "<單據檔案路徑>" --month "Sep 2026" --type trans
+```
+該命令會自動辨識單據、安全搬移、渲染預覽圖、微創追加進 `Reimbursement.html` 的 `defaultData` 並同步維護 JSON 總帳！
 
 ---
 
-## 5. 開發與維護注意事項
-*   **交通單據日期認定規範**：Uber 等車資收據常有「預定時間」與「實際用車時間」之差異，人工校對或 AI 代理處理時，務必讀取行程細節中的實際搭乘出發時間作為單據日期。
-*   **路徑安全性**：公用腳本必須藉由參數傳入月份資料夾名稱，防止在根目錄亂改檔案。
-*   **無損合併 (Merge Cache)**：網頁端會自動將硬碟掃描到的最新檔案列表與 `localStorage` 快取比對並進行無損合併。清除瀏覽器快取會導致已編輯的「客戶名稱」遺失，應定期點擊導出 JSON 保存。
-
----
-
-## 6. AI 代理協作模式 (No API Required)
-本專案的自動化處理腳本 **不依賴任何外部大模型 API**（如 OpenAI 或 Gemini 的 API 密鑰），因此具有高安全性與零運算成本特性。
-
-為了順利處理非文字型 PDF 與發票圖片，本專案採用 **「本地 AI IDE 代理人協作」** 機制：
-1. **執行環境**：使用者需配合具備多模態視覺能力的本地 AI 程式開發工具（例如：**Antigravity、Claude (Cursor/Cline)、Codex** 等）使用此倉庫。
-2. **協作流程**：
-   * 當執行 `rename_vouchers.py` 後，若有些發票被命名為 `[需要手動確認]_*.pdf`，
-   * 接手任務的 AI 代理會自動利用其內置的多模態視覺工具「閱讀」這些發票，提取正確的日期、城市與金額。
-   * AI 代理會自動在終端執行改名指令進行標準化，並重新執行 `generate_dashboard.py` 更新報銷網頁。
-   * 此機制完全不需要配置專案 API 密鑰，外部開發者只需在本地提供 AI IDE 環境即可直接搭配使用。
+## 5. 跨環境擴展性 (Future Web Track)
+本專案已做好對齊 Web 靜態部署的同構準備：
+* 檔名正規、目錄分類映射與 JSON 總帳字典均已固化。
+* 未來建立 GitHub Pages 靜態前端時，直接調用外部 LLM API 解析發票，本地與網頁端產出格式 100% 互通。

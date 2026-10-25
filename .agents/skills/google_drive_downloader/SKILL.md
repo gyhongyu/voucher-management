@@ -1,52 +1,33 @@
 ---
 name: google_drive_downloader
-description: Voucher Management 專案專屬 Google Drive 出差單據單向增量下載總管 (Voucher Drive Downloader)。專門用於將雲端 Business Trip 資料夾 (1cHZL5SFj0O9V25gxLXsyuhJklF0x_F_S) 中的出差發票與 PDF/JPG 收據單向同步至本地月份目錄。內建「防覆蓋保護鐵律 (Zero-Overwrite Guard)」：若本地已存在該月份目錄且包含單據，嚴格拒絕下載並安全跳過；自動忽略「說明」等非單據目錄。當使用者提到「下載雲端單據」、「拉取Google Drive單據」、「下載出差發票」、「sync drive」、「drive download」、「google drive download」或剛出差回來需要拉取雲端單據時自動觸發。
+description: Voucher專屬Google Drive出差單據增量下載總管。單向同步Business Trip雲端發票至本地月份目錄，具備防覆蓋保護鐵律。
 ---
 
-# 📥 Google Drive Voucher Downloader (出差單據單向增量下載總管)
+# Google Drive Voucher Downloader (出差單據增量下載總管)
 
-> 📌 **核心使命**：**「出差手機隨手丟雲端，回家一鍵拉取進管線，嚴防覆蓋已命名單據！」**  
-> 專門銜接使用者的 Google Drive 雲端出差目錄（`Business Trip`）與本專案的自動化報銷流水線（`rename_vouchers.py` ➔ `generate_dashboard.py`）。
-
----
-
-## 💀 屍前驗屍與四大硬性鐵律 (Pre-Mortem Invariants)
-
-1. **【防覆蓋最高防線 (Zero-Overwrite Guard)】**：
-   - 若本地已存在該月份目錄（如 `Sep` 或 `Sep 2026`）且已含有檔案，**嚴格拒絕下載並安全跳過**！
-   - 杜絕將本地已由 AI 視覺辨識改名好的標準單據砸爛或重複覆蓋。
-2. **【智能目錄過濾 (Noise Filter)】**：
-   - 自動過濾 `說明` 等非月份資料夾，精確鎖定 `Sep 2026` 等出差月份。
-3. **【雙軌自癒通訊 (Dual Transport Pipeline)】**：
-   - 具備 Google Drive 授權直載與 REST API 自動換票通道，支援大容量單據無損下載。
-4. **【單一入口與 Command Hygiene】**：
-   - 固定命令簽名：`py .agents\skills\google_drive_downloader\scripts\drive_downloader.py`。
+> [!IMPORTANT]
+> **【核心職責與一票否決硬鎖】**
+> - **職責定位**：負責將 Google Drive `Business Trip` 雲端收據單向增量拉取至本地 `Business Trip/<Month>/`。
+> - **下游對齊**：單據拉取完畢後，下游交由 `voucher_pipeline_manager` 進行清洗與儀表板產出。
+> - 🔴 **一票否決**：嚴禁覆蓋本地已完工（存在 `Reimbursement.html`）或已存在的同名單據！
 
 ---
 
-## 🚦 CLI 常用指令
+## 🚀 常用指令導航 (CLI --help 探索)
 
-```bash
-# 1. 執行標準單向增量下載 (自動檢測新月份，已存在月份自動跳過)
-py .agents\skills\google_drive_downloader\scripts\drive_downloader.py
+| 常用場景 | 推薦指令 (具備固定簽名) |
+| :--- | :--- |
+| **增量同步全量月份** | `py .agents/skills/google_drive_downloader/scripts/drive_downloader.py` |
+| **指定單一月份同步** | `py .agents/skills/google_drive_downloader/scripts/drive_downloader.py --month "<月份>"` |
+| **查看 CLI 參數** | `py .agents/skills/google_drive_downloader/scripts/drive_downloader.py --help` |
 
-# 2. 指定下載特定月份 (依然受防覆蓋保護)
-py .agents\skills\google_drive_downloader\scripts\drive_downloader.py --month "Sep 2026"
-```
-
----
-
-## 🔄 標準作業流 (SOP)
-
-1. **出差期間**：手機拍攝收據或收到電子收據，直接丟入 Google Drive `Business Trip / <Month YYYY>` 目錄。
-2. **拉取單據**：在專案根目錄執行 `py .agents\skills\google_drive_downloader\scripts\drive_downloader.py`。
-3. **轉檔與命名**：執行既有管線 `py rename_vouchers.py "<Month>"`。
-4. **儀表板產出**：執行 `py generate_dashboard.py "<Month>"`。
+> 💡 **單 Agent 接力指引**：下載完成後，直接調用 `py .agents/skills/voucher_pipeline_manager/scripts/voucher_pipeline.py run "<月份>"` 啟動處理管線。
 
 ---
 
-## 📁 模組結構
+## 🧭 深入指南索引 (按需 view_file 載入)
 
-- 核心下載腳本：[`scripts/drive_downloader.py`](file:///e:/Projects/Voucher%20management/.agents/skills/google_drive_downloader/scripts/drive_downloader.py)
-- GAS 雲端網關代碼：[`gas/Code.js`](file:///e:/Projects/Voucher%20management/.agents/skills/google_drive_downloader/gas/Code.js)
-- Clasp 設定檔：[`.clasp.json`](file:///e:/Projects/Voucher%20management/.agents/skills/google_drive_downloader/.clasp.json)
+| 任務情境 | 查閱檔案 |
+| :--- | :--- |
+| 查閱雙軌通訊機制 (REST API / GAS Fallback) 與 CLI 詳細字典 | [references/cli_manual.md](file:///e:/Projects/Voucher%20management/.agents/skills/google_drive_downloader/references/cli_manual.md) |
+| 查閱專案整體單據命名與數據契約規範 | [references/data_contract.md](file:///e:/Projects/Voucher%20management/.agents/skills/voucher_pipeline_manager/references/data_contract.md) |
