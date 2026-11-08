@@ -57,31 +57,70 @@ def cmd_status(args):
     return 0
 
 
-def collect_uber_notes(month_str, output_dir, dry_run=False):
-    """從 NotesMaster 收集 Uber 收據"""
-    print(f"🔍 正在從 NotesMaster 檢索 Uber 收據...")
-    code, out, _ = _run_cmd(["py", str(NOTES_CLIENT), "mail", "search", "Uber"])
-    if code != 0:
-        print("❌ Notes 郵件檢索失敗！")
+def parse_month_filter(month_str):
+    """靈活解析月份篩選字串為標準 (year, month) 元組"""
+    if not month_str:
+        return None
+    cleaned = month_str.strip().replace("-", " ")
+    for fmt in ["%Y %m", "%b %y", "%B %Y", "%b %Y", "%Y %b", "%Y %B"]:
+        try:
+            dt = datetime.strptime(cleaned, fmt)
+            return (dt.year, dt.month)
+        except ValueError:
+            continue
+    # 嘗試正規化匹配，例如 Oct 2026 或 2026-10
+    m1 = re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{2,4})', cleaned, re.I)
+    if m1:
+        mon_name, yr = m1.group(1), m1.group(2)
+        if len(yr) == 2:
+            yr = "20" + yr
+        try:
+            dt = datetime.strptime(f"{mon_name} {yr}", "%b %Y")
+            return (dt.year, dt.month)
+        except Exception:
+            pass
+    return None
+
+
+def is_date_in_window(dt: datetime, target_ym: tuple, span_days: int = 7) -> bool:
+    """判斷日期是否在目標月份內，或在月底接續之跨月窗口 (如次月前 span_days 天)"""
+    if not target_ym:
+        return True
+    target_year, target_month = target_ym
+    # 1. 屬於目標月份
+    if dt.year == target_year and dt.month == target_month:
+        return True
+    # 2. 判斷是否為次月前 span_days 天之連貫行程
+    next_year = target_year if target_month < 12 else target_year + 1
+    next_month = target_month + 1 if target_month < 12 else 1
+    if dt.year == next_year and dt.month == next_month and dt.day <= span_days:
+        return True
+    return False
+
+
+def collect_uber_notes(month_str, output_dir, dry_run=False, folder="Uber", span_days=7):
+    """從 NotesMaster 收集 Uber 收據 (嚴格信匣隔離，杜絕跨匣翻垃圾桶)"""
+    print(f"🔍 正在從 NotesMaster [{folder}] 匣檢索 Uber 收據...")
+    code, out, _ = _run_cmd(["py", str(NOTES_CLIENT), "mail", "list", "--folder", folder, "--json", "--limit", "100"])
+    if code != 0 or not out.strip().startswith("["):
+        print(f"❌ Notes 郵件檢索失敗或 [{folder}] 信匣為空！嚴禁跨信匣全域搜尋以防翻出垃圾桶廢件。")
         return []
 
-    # 解析 UNID 與 NoteID
-    # 格式: 【#1 】 📎 [2026-09-25 17:05] Your Friday afternoon trip with Uber ("Uber Receipts")
-    #       UNID: FF587EC4B057E8E8E1EF92A01BEC3B65 | NoteID: 1094A
-    entries = []
-    current_entry = {}
-    for line in out.splitlines():
-        line = line.strip()
-        m_date = re.search(r'\[(\d{4}-\d{2}-\d{2})\s+[^\]]+\]\s+(.+)', line)
-        if m_date:
-            current_entry["date"] = m_date.group(1)
-            current_entry["subject"] = m_date.group(2)
-        m_id = re.search(r'NoteID:\s*([0-9A-Fa-f]+)', line)
-        if m_id:
-            current_entry["note_id"] = m_id.group(1)
-            entries.append(current_entry)
-            current_entry = {}
+    try:
+        raw_entries = json.loads(out)
+        entries = []
+        for item in raw_entries:
+            sent_time = item.get("sent_time", "")
+            dt_str = sent_time[:10] if sent_time else ""
+            note_id = item.get("current_note_id", "")
+            subject = item.get("subject", "")
+            if dt_str and note_id:
+                entries.append({"date": dt_str, "note_id": note_id, "subject": subject})
+    except Exception as e:
+        print(f"❌ 解析 Notes JSON 失敗: {e}")
+        return []
 
+    target_ym = parse_month_filter(month_str)
     collected = []
     for item in entries:
         dt_str = item.get("date", "")
@@ -89,18 +128,15 @@ def collect_uber_notes(month_str, output_dir, dry_run=False):
         if not dt_str or not note_id:
             continue
 
-        # 比對月份 (如 2026-09 vs Sep-26 或 2026-09)
         dt = datetime.strptime(dt_str, "%Y-%m-%d")
-        month_label_1 = dt.strftime("%b-%y")  # Sep-26
-        month_label_2 = dt.strftime("%Y-%m")  # 2026-09
-
-        if month_str and month_str.lower() not in [month_label_1.lower(), month_label_2.lower()]:
+        if not is_date_in_window(dt, target_ym, span_days=span_days):
             continue
 
         target_name = f"{dt.strftime('%d-%b-%y')}-Uber-Notes-{note_id}.pdf"
         target_file = output_dir / target_name
         if target_file.exists():
             print(f"   ⏩ [跳過] 檔案已存在: {target_name}")
+            collected.append(target_file)
             continue
 
         print(f"   📥 正在導出 [{dt_str}] NoteID:{note_id} ➔ {target_name}")
@@ -174,19 +210,22 @@ def cmd_collect(args):
     """執行收據收集"""
     source = args.source.lower()
     month = args.month
+    span_days = args.span_days
     out_dir = Path(args.output).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 65)
-    print(f"🚗 [voucher_receipt_collector] 開始收集收據 (來源: {source}, 月份: {month or '全量'})")
+    print(f"🚗 [voucher_receipt_collector] 開始收集收據 (來源: {source}, 月份: {month or '全量'}, 跨月寬容: {span_days}天)")
     print(f"🎯 存放目錄 : {out_dir}")
     print("=" * 65)
 
     all_files = []
-    if source in ["notes", "all"]:
-        all_files.extend(collect_uber_notes(month, out_dir, args.dry_run))
-
-    if source in ["gmail", "all"]:
+    if source == "notes":
+        all_files.extend(collect_uber_notes(month, out_dir, args.dry_run, span_days=span_days))
+    elif source == "gmail":
+        all_files.extend(collect_uber_gmail(month, out_dir, args.dry_run))
+    elif source == "all":
+        all_files.extend(collect_uber_notes(month, out_dir, args.dry_run, span_days=span_days))
         all_files.extend(collect_uber_gmail(month, out_dir, args.dry_run))
 
     print("-" * 65)
@@ -201,8 +240,9 @@ def main():
 
     # collect
     p_col = subparsers.add_parser("collect", help="檢索並收集外部收據轉檔為 PDF")
-    p_col.add_argument("--source", choices=["notes", "gmail", "all"], default="all", help="指定來源 (預設: all)")
+    p_col.add_argument("--source", choices=["notes", "gmail", "all"], default="notes", help="指定來源 (預設: notes，杜絕跨渠道無端搜索)")
     p_col.add_argument("--month", "-m", help="指定月份篩選 (如 Sep-26 或 2026-09)")
+    p_col.add_argument("--span-days", type=int, default=7, help="跨月底連貫行程寬容天數 (預設: 7 天)")
     p_col.add_argument("-o", "--output", default="Transportation", help="存檔輸出資料夾 (預設: Transportation)")
     p_col.add_argument("--dry-run", action="store_true", help="僅列出欲收集項目，不實際下載")
 
